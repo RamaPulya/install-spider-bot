@@ -15,12 +15,27 @@ clone_repository() {
         else
             print_info "Используем существующую директорию"
             cd "$INSTALL_DIR"
-            git pull origin main || true
+            if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+                git remote set-url origin "$REPO_URL" 2>/dev/null || true
+                if [ -n "$REPO_BRANCH" ]; then
+                    git fetch origin "$REPO_BRANCH" 2>/dev/null || true
+                    git checkout "$REPO_BRANCH" 2>/dev/null || git checkout -b "$REPO_BRANCH" "origin/$REPO_BRANCH" 2>/dev/null || true
+                    git pull origin "$REPO_BRANCH" || true
+                else
+                    git pull origin main || true
+                fi
+            else
+                print_warning "Текущая директория не является git-репозиторием. Обновление пропущено."
+            fi
             return
         fi
     fi
     
-    git clone "$REPO_URL" "$INSTALL_DIR"
+    if [ -n "$REPO_BRANCH" ]; then
+        git clone --depth 1 --single-branch --branch "$REPO_BRANCH" "$REPO_URL" "$INSTALL_DIR"
+    else
+        git clone "$REPO_URL" "$INSTALL_DIR"
+    fi
     cd "$INSTALL_DIR"
     print_success "Репозиторий клонирован в $INSTALL_DIR"
 }

@@ -20,8 +20,11 @@
 Одна команда для полной установки бота:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/wrx861/bedolaga_auto_install/main/scripts/quick-install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderman/scripts/quick-install.sh | sudo bash
 ```
+
+📌 Документация по ветке spiderman и настройке Caddy:  
+`SPIDERMAN_INSTALLER.md`
 
 > 💡 **Совет:** Перед установкой подготовьте DNS записи для ваших доменов (см. раздел ниже)
 
@@ -111,7 +114,7 @@ dig +short mini.yourdomain.com
 ### Шаг 1: Запустите установщик
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/wrx861/bedolaga_auto_install/main/scripts/quick-install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderman/scripts/quick-install.sh | sudo bash
 ```
 
 ### Шаг 2: Следуйте мастеру установки
@@ -143,7 +146,7 @@ curl -fsSL https://raw.githubusercontent.com/wrx861/bedolaga_auto_install/main/s
 
 ```bash
 # Скачать и запустить скрипт обновления
-curl -fsSL https://raw.githubusercontent.com/wrx861/bedolaga_auto_install/main/scripts/upgrade.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderman/scripts/upgrade.sh | sudo bash
 ```
 
 Скрипт предложит:
@@ -379,9 +382,9 @@ systemctl restart nginx
 
 | Ресурс | Ссылка |
 |--------|--------|
-| 📖 Документация бота | [GitHub](https://github.com/BEDOLAGA-DEV/remnawave-bedolaga-telegram-bot) |
+| 📖 Документация бота | [GitHub](https://github.com/RamaPulya/remnawave-bedolaga-telegram-bot) |
 | 💬 Telegram чат | [@remnawave_chat](https://t.me/+wTdMtSWq8YdmZmVi) |
-| 🐛 Сообщить о баге | [Issues](https://github.com/BEDOLAGA-DEV/remnawave-bedolaga-telegram-bot/issues) |
+| 🐛 Сообщить о баге | [Issues](https://github.com/RamaPulya/remnawave-bedolaga-telegram-bot/issues) |
 | 📚 Remnawave Docs | [docs.rw](https://docs.rw) |
 
 ---
@@ -427,3 +430,6 @@ systemctl restart nginx
 **Made with ❤️ by BEDOLAGA-DEV**
 
 </div>
+
+
+

@@ -12,6 +12,7 @@ CYAN='\033[0;36m'
 PURPLE='\033[0;35m'
 WHITE='\033[1;37m'
 NC='\033[0m'
+REPO_BRANCH="spiderman-no-tarriffs"
 
 # ═══════════════════════════════════════════════════════════════
 # ФУНКЦИИ (определяем ДО использования)
@@ -198,7 +199,7 @@ do_update() {
     check_install_dir
     echo -e "\${CYAN}📦 Обновление бота...\${NC}"
     cp .env ".env.backup_\$(date +%Y%m%d_%H%M%S)" 2>/dev/null
-    git pull origin main
+    git pull origin "$REPO_BRANCH"
     docker compose -f "\$COMPOSE_FILE" down
     docker compose -f "\$COMPOSE_FILE" build --no-cache
     docker compose -f "\$COMPOSE_FILE" up -d
@@ -327,7 +328,7 @@ do_install() {
             2)
                 echo -e "\${CYAN}📥 Обновление скриптов...\${NC}"
                 local TEMP_DIR=\$(mktemp -d)
-                git clone --depth 1 https://github.com/wrx861/bedolaga_auto_install.git "\$TEMP_DIR" 2>/dev/null
+                git clone --depth 1 --single-branch --branch spiderman https://github.com/RamaPulya/bot_auto_install.git "\$TEMP_DIR" 2>/dev/null
                 if [ -d "\$TEMP_DIR/scripts" ]; then
                     rm -rf "\$INSTALLER_DIR"
                     cp -r "\$TEMP_DIR/scripts" "\$INSTALLER_DIR"
@@ -340,7 +341,7 @@ do_install() {
                 ;;
             3)
                 echo -e "\${CYAN}📥 Скачивание с GitHub...\${NC}"
-                curl -fsSL https://raw.githubusercontent.com/wrx861/bedolaga_auto_install/main/scripts/quick-install.sh | sudo bash
+                curl -fsSL https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderman/scripts/quick-install.sh | sudo bash
                 ;;
             0)
                 return
@@ -359,12 +360,12 @@ do_install() {
         
         case \$choice in
             1)
-                curl -fsSL https://raw.githubusercontent.com/wrx861/bedolaga_auto_install/main/scripts/quick-install.sh | sudo bash
+                curl -fsSL https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderman/scripts/quick-install.sh | sudo bash
                 ;;
             2)
                 mkdir -p "\$INSTALLER_DIR"
                 local TEMP_DIR=\$(mktemp -d)
-                git clone --depth 1 https://github.com/wrx861/bedolaga_auto_install.git "\$TEMP_DIR" 2>/dev/null
+                git clone --depth 1 --single-branch --branch spiderman https://github.com/RamaPulya/bot_auto_install.git "\$TEMP_DIR" 2>/dev/null
                 if [ -d "\$TEMP_DIR/scripts" ]; then
                     cp -r "\$TEMP_DIR/scripts"/* "\$INSTALLER_DIR/"
                     chmod +x "\$INSTALLER_DIR"/*.sh 2>/dev/null
@@ -494,7 +495,7 @@ update_installer() {
     echo -e "${CYAN}📥 Скачивание скриптов установщика...${NC}"
     
     TEMP_DIR=$(mktemp -d)
-    git clone --depth 1 https://github.com/wrx861/bedolaga_auto_install.git "$TEMP_DIR" 2>/dev/null
+    git clone --depth 1 --single-branch --branch spiderman https://github.com/RamaPulya/bot_auto_install.git "$TEMP_DIR" 2>/dev/null
     
     if [ -d "$TEMP_DIR/scripts" ]; then
         rm -rf "$INSTALLER_DIR" 2>/dev/null
@@ -603,3 +604,6 @@ echo -e "${GREEN}╚════════════════════
 echo
 echo -e "${WHITE}Используйте команду ${CYAN}bot${NC} для управления ботом${NC}"
 echo
+
+
+

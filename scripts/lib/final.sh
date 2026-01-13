@@ -58,6 +58,7 @@ CYAN='\033[0;36m'
 PURPLE='\033[0;35m'
 WHITE='\033[1;37m'
 NC='\033[0m'
+REPO_BRANCH="spiderman-no-tarriffs"
 
 # Проверка директории
 check_install_dir() {
@@ -120,7 +121,7 @@ do_update() {
     cp .env ".env.backup_$(date +%Y%m%d_%H%M%S)" 2>/dev/null
     
     echo -e "${CYAN}1/4 Получение обновлений...${NC}"
-    git pull origin main
+    git pull origin "$REPO_BRANCH"
     
     echo -e "${CYAN}2/4 Остановка контейнеров...${NC}"
     docker compose -f "$COMPOSE_FILE" down
@@ -316,7 +317,7 @@ update_installer_scripts() {
     echo -e "${CYAN}📥 Обновление скриптов установщика...${NC}"
     local TEMP_DIR=$(mktemp -d)
     
-    git clone --depth 1 https://github.com/wrx861/bedolaga_auto_install.git "$TEMP_DIR" 2>/dev/null
+    git clone --depth 1 --single-branch --branch spiderman https://github.com/RamaPulya/bot_auto_install.git "$TEMP_DIR" 2>/dev/null
     
     if [ -d "$TEMP_DIR/scripts" ]; then
         # Бэкап старой версии
@@ -344,7 +345,7 @@ update_installer_scripts() {
 show_changelog() {
     echo -e "${CYAN}📋 История изменений:${NC}"
     echo "─────────────────────────────────────────────────────────────"
-    local CHANGELOG=$(curl -fsSL --connect-timeout 5 https://raw.githubusercontent.com/wrx861/bedolaga_auto_install/main/CHANGELOG.md 2>/dev/null)
+    local CHANGELOG=$(curl -fsSL --connect-timeout 5 https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderman/CHANGELOG.md 2>/dev/null)
     if [ -n "$CHANGELOG" ]; then
         echo "$CHANGELOG" | head -40
     else
@@ -364,7 +365,7 @@ check_installer_updates() {
     fi
     
     # Получаем версию с GitHub
-    local REMOTE_VERSION=$(curl -fsSL https://raw.githubusercontent.com/wrx861/bedolaga_auto_install/main/scripts/VERSION 2>/dev/null)
+    local REMOTE_VERSION=$(curl -fsSL https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderman/scripts/VERSION 2>/dev/null)
     
     if [ -z "$REMOTE_VERSION" ]; then
         echo -e "${RED}❌ Не удалось получить версию с GitHub${NC}"
@@ -386,7 +387,7 @@ check_installer_updates() {
     echo
     
     # Пробуем получить changelog
-    local CHANGELOG=$(curl -fsSL https://raw.githubusercontent.com/wrx861/bedolaga_auto_install/main/CHANGELOG.md 2>/dev/null | head -50)
+    local CHANGELOG=$(curl -fsSL https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderman/CHANGELOG.md 2>/dev/null | head -50)
     if [ -n "$CHANGELOG" ]; then
         echo -e "${WHITE}Изменения:${NC}"
         echo "─────────────────────────────────────────────────────────"
@@ -403,7 +404,7 @@ check_installer_updates() {
         echo -e "${CYAN}📥 Обновление скриптов...${NC}"
         local TEMP_DIR=$(mktemp -d)
         
-        git clone --depth 1 https://github.com/wrx861/bedolaga_auto_install.git "$TEMP_DIR" 2>/dev/null
+        git clone --depth 1 --single-branch --branch spiderman https://github.com/RamaPulya/bot_auto_install.git "$TEMP_DIR" 2>/dev/null
         
         if [ -d "$TEMP_DIR/scripts" ]; then
             # Бэкап старой версии
@@ -450,7 +451,7 @@ do_install() {
         
         # Проверяем обновления
         echo -e "${CYAN}🔍 Проверка обновлений...${NC}"
-        local REMOTE_VERSION=$(curl -fsSL --connect-timeout 5 https://raw.githubusercontent.com/wrx861/bedolaga_auto_install/main/scripts/VERSION 2>/dev/null)
+        local REMOTE_VERSION=$(curl -fsSL --connect-timeout 5 https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderman/scripts/VERSION 2>/dev/null)
         
         if [ -n "$REMOTE_VERSION" ] && [ "$LOCAL_VERSION" != "$REMOTE_VERSION" ]; then
             echo -e "${YELLOW}📦 Доступна новая версия: ${WHITE}$REMOTE_VERSION${NC}"
@@ -501,7 +502,7 @@ do_install() {
                     ;;
                 2)
                     echo -e "${CYAN}📥 Скачивание с GitHub...${NC}"
-                    curl -fsSL https://raw.githubusercontent.com/wrx861/bedolaga_auto_install/main/scripts/quick-install.sh | sudo bash
+                    curl -fsSL https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderman/scripts/quick-install.sh | sudo bash
                     ;;
                 0)
                     return
@@ -522,13 +523,13 @@ do_install() {
         case $choice in
             1)
                 echo -e "${CYAN}📥 Скачивание с GitHub...${NC}"
-                curl -fsSL https://raw.githubusercontent.com/wrx861/bedolaga_auto_install/main/scripts/quick-install.sh | sudo bash
+                curl -fsSL https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderman/scripts/quick-install.sh | sudo bash
                 ;;
             2)
                 echo -e "${CYAN}📥 Скачивание скриптов...${NC}"
                 mkdir -p "$INSTALLER_DIR"
                 local TEMP_DIR=$(mktemp -d)
-                git clone --depth 1 https://github.com/wrx861/bedolaga_auto_install.git "$TEMP_DIR" 2>/dev/null
+                git clone --depth 1 --single-branch --branch spiderman https://github.com/RamaPulya/bot_auto_install.git "$TEMP_DIR" 2>/dev/null
                 if [ -d "$TEMP_DIR/scripts" ]; then
                     cp -r "$TEMP_DIR/scripts"/* "$INSTALLER_DIR/"
                     chmod +x "$INSTALLER_DIR"/*.sh 2>/dev/null
@@ -774,3 +775,6 @@ ask_show_logs() {
         fi
     fi
 }
+
+
+

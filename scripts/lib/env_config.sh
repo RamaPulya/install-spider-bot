@@ -160,7 +160,7 @@ MAINTENANCE_MONITORING_ENABLED=true
 
 # ===== ПРОВЕРКА ОБНОВЛЕНИЙ =====
 VERSION_CHECK_ENABLED=true
-VERSION_CHECK_REPO=BEDOLAGA-DEV/remnawave-bedolaga-telegram-bot
+VERSION_CHECK_REPO=RamaPulya/remnawave-bedolaga-telegram-bot
 VERSION_CHECK_INTERVAL_HOURS=1
 
 # ===== ЛОГИРОВАНИЕ =====

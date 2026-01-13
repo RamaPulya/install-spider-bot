@@ -5,7 +5,7 @@
 # ===============================================
 # Версия: 1.2.0
 # Автор: Bedolaga Team
-# GitHub: https://github.com/BEDOLAGA-DEV/remnawave-bedolaga-telegram-bot
+# GitHub: https://github.com/RamaPulya/remnawave-bedolaga-telegram-bot
 # 
 # Изменения v1.2.0:
 # - Модульная архитектура (разделение на файлы)
@@ -20,7 +20,8 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # URL репозитория бота
-REPO_URL="https://github.com/BEDOLAGA-DEV/remnawave-bedolaga-telegram-bot.git"
+REPO_URL="https://github.com/RamaPulya/remnawave-bedolaga-telegram-bot.git"
+REPO_BRANCH="spiderman-no-tarriffs"
 
 # ===============================================
 # ПОДКЛЮЧЕНИЕ МОДУЛЕЙ
@@ -41,6 +42,7 @@ MODULES=(
     "docker_setup.sh"
     "env_config.sh"
     "nginx_setup.sh"
+    "caddy_setup.sh"
     "final.sh"
 )
 
@@ -116,8 +118,13 @@ main() {
     # Настройка Mini App
     setup_miniapp_files
     
+    # Настройка Caddy (если используется панель + Caddy на сервере)
+    setup_caddy
+    
     # Настройка Nginx (если есть домены для webhook/miniapp)
-    setup_nginx
+    if [ "${USE_CADDY:-false}" != "true" ]; then
+        setup_nginx
+    fi
     
     # Настройка Firewall (ОПЦИОНАЛЬНО)
     setup_firewall

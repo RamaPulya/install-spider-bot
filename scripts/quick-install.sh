@@ -33,8 +33,9 @@ apt-get update -y
 apt-get install -y curl wget git
 
 # URL репозитория
-REPO_URL="https://github.com/wrx861/bedolaga_auto_install"
-REPO_RAW="https://raw.githubusercontent.com/wrx861/bedolaga_auto_install/main"
+REPO_URL="https://github.com/RamaPulya/bot_auto_install"
+REPO_BRANCH="spiderman"
+REPO_RAW="https://raw.githubusercontent.com/RamaPulya/bot_auto_install/${REPO_BRANCH}"
 
 # Директория для скриптов
 INSTALL_DIR="/tmp/bedolaga-installer"
@@ -65,6 +66,7 @@ MODULES=(
     "lib/docker_setup.sh"
     "lib/env_config.sh"
     "lib/nginx_setup.sh"
+    "lib/caddy_setup.sh"
     "lib/final.sh"
 )
 
@@ -72,7 +74,7 @@ for module in "${MODULES[@]}"; do
     download_file "$module" "$INSTALL_DIR/$module" || {
         echo -e "${YELLOW}⚠️ Не удалось загрузить модули, клонируем репозиторий...${NC}"
         rm -rf "$INSTALL_DIR"
-        git clone "$REPO_URL" "$INSTALL_DIR"
+        git clone --depth 1 --single-branch --branch "$REPO_BRANCH" "$REPO_URL" "$INSTALL_DIR"
         cd "$INSTALL_DIR/scripts"
         chmod +x install.sh lib/*.sh
         echo -e "${GREEN}🚀 Запуск установщика...${NC}"
@@ -91,3 +93,4 @@ bash install.sh
 
 # Очистка
 rm -rf "$INSTALL_DIR"
+
