@@ -48,8 +48,12 @@ echo -e "${GREEN}📥 Загрузка установщика...${NC}"
 download_file() {
     local file=$1
     local dest=$2
+    local auth_header=()
+    if [ -n "$GITHUB_TOKEN" ]; then
+        auth_header=(-H "Authorization: Bearer $GITHUB_TOKEN")
+    fi
     echo -e "${CYAN}   Загрузка: $file${NC}"
-    curl -fsSL "${REPO_RAW}/scripts/${file}" -o "$dest" || {
+    curl -fsSL "${auth_header[@]}" "${REPO_RAW}/scripts/${file}" -o "$dest" || {
         echo -e "${RED}   ❌ Не удалось загрузить $file${NC}"
         return 1
     }
@@ -74,7 +78,12 @@ for module in "${MODULES[@]}"; do
     download_file "$module" "$INSTALL_DIR/$module" || {
         echo -e "${YELLOW}⚠️ Не удалось загрузить модули, клонируем репозиторий...${NC}"
         rm -rf "$INSTALL_DIR"
-        git clone --depth 1 --single-branch --branch "$REPO_BRANCH" "$REPO_URL" "$INSTALL_DIR"
+        if [ -n "$GITHUB_TOKEN" ]; then
+            git clone --depth 1 --single-branch --branch "$REPO_BRANCH" \
+                "https://$GITHUB_TOKEN@github.com/RamaPulya/bot_auto_install.git" "$INSTALL_DIR"
+        else
+            git clone --depth 1 --single-branch --branch "$REPO_BRANCH" "$REPO_URL" "$INSTALL_DIR"
+        fi
         cd "$INSTALL_DIR/scripts"
         chmod +x install.sh lib/*.sh
         echo -e "${GREEN}🚀 Запуск установщика...${NC}"
