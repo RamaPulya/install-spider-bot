@@ -135,6 +135,58 @@ do_update() {
     echo -e "${GREEN}✅ Обновление завершено${NC}"
 }
 
+show_update_info() {
+    check_install_dir
+    echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${WHITE}📦 ОБНОВЛЕНИЕ БОТА${NC}"
+    echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+    echo
+
+    if [ ! -d ".git" ]; then
+        echo -e "${RED}❌ Git-репозиторий не найден${NC}"
+        return 1
+    fi
+
+    if ! git fetch origin "$REPO_BRANCH" >/dev/null 2>&1; then
+        echo -e "${YELLOW}⚠️  Не удалось получить обновления из GitHub${NC}"
+    fi
+
+    LOCAL_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "?")
+    LOCAL_DATE=$(git log -1 --date=short --format=%ad 2>/dev/null || echo "?")
+    REMOTE_HASH=$(git rev-parse --short "origin/$REPO_BRANCH" 2>/dev/null || echo "?")
+    REMOTE_DATE=$(git log -1 "origin/$REPO_BRANCH" --date=short --format=%ad 2>/dev/null || echo "?")
+    BEHIND=$(git rev-list --count "HEAD..origin/$REPO_BRANCH" 2>/dev/null || echo "0")
+
+    echo -e "${WHITE}Локальная версия:${NC} ${CYAN}$LOCAL_HASH${NC} | $LOCAL_DATE"
+    echo -e "${WHITE}Удаленная версия:${NC} ${CYAN}$REMOTE_HASH${NC} | $REMOTE_DATE"
+    echo
+    if [ "$BEHIND" -gt 0 ] 2>/dev/null; then
+        echo -e "${YELLOW}Доступно обновлений: $BEHIND${NC}"
+    else
+        echo -e "${GREEN}Обновлений нет — вы на актуальной версии${NC}"
+    fi
+    echo
+    echo -e "${WHITE}Последние коммиты (origin/$REPO_BRANCH):${NC}"
+    git log -n 5 --date=short --pretty=format:"%h | %ad | %an | %s" "origin/$REPO_BRANCH" 2>/dev/null || echo "Нет данных"
+    echo
+}
+
+update_menu() {
+    while true; do
+        show_update_info || true
+        echo -e "${WHITE}Выберите действие:${NC}"
+        echo -e "  ${CYAN}1)${NC} 📦 Обновить бота"
+        echo -e "  ${CYAN}0)${NC} Назад"
+        echo
+        read -p "Ваш выбор: " choice
+        case $choice in
+            1) do_update; read -p "Нажмите Enter..." ;;
+            0) return ;;
+            *) echo -e "${RED}Неверный выбор${NC}"; sleep 1 ;;
+        esac
+    done
+}
+
 do_backup() {
     check_install_dir
     local BACKUP_DIR="$INSTALL_DIR/data/backups"
@@ -620,7 +672,7 @@ show_menu() {
     echo -e "  ${CYAN}2)${NC} 📊 Статус            ${CYAN}7)${NC} 🏥 Диагностика"
     echo -e "  ${CYAN}3)${NC} 🔄 Перезапуск        ${CYAN}8)${NC} ⚙️  Настройки"
     echo -e "  ${CYAN}4)${NC} ▶️  Запуск            ${CYAN}9)${NC} 📦 Обновить бота"
-    echo -e "  ${CYAN}5)${NC} ⏹️  Остановка"
+    echo -e "  ${CYAN}5)${NC} ⏹️  Остановка         ${CYAN}10)${NC} 🛠️ Обновить скрипт"
     echo
     echo -e "  ${CYAN}i)${NC} 🔧 Установщик        ${CYAN}0)${NC} 🗑️  Удаление"
     echo -e "  ${CYAN}q)${NC} Выход"
@@ -641,7 +693,8 @@ interactive_menu() {
             6) do_backup; read -p "Нажмите Enter..." ;;
             7) do_health; read -p "Нажмите Enter..." ;;
             8) do_config ;;
-            9) do_update; read -p "Нажмите Enter..." ;;
+            9) update_menu ;;
+            10) update_installer_scripts; read -p "Нажмите Enter..." ;;
             i|I|install) do_install; read -p "Нажмите Enter..." ;;
             0) do_uninstall; break ;;
             q|Q|exit) echo -e "${GREEN}До свидания!${NC}"; exit 0 ;;
