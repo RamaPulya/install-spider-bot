@@ -107,6 +107,8 @@ install_bot_command() {
 
 INSTALL_DIR="$INSTALL_DIR"
 COMPOSE_FILE="$COMPOSE_FILE"
+INSTALLER_DIR="$INSTALL_DIR/.installer"
+REPO_BRANCH="spiderman-no-tarriffs"
 
 # Цвета
 RED='\033[0;31m'
@@ -256,6 +258,32 @@ update_menu() {
             *) echo -e "\${RED}Неверный выбор\${NC}"; sleep 1 ;;
         esac
     done
+}
+
+update_installer() {
+    echo
+    echo -e "\${CYAN}═══════════════════════════════════════════════════════════════\${NC}"
+    echo -e "\${WHITE}🔧 ОБНОВЛЕНИЕ СКРИПТОВ УСТАНОВЩИКА\${NC}"
+    echo -e "\${CYAN}═══════════════════════════════════════════════════════════════\${NC}"
+    
+    echo -e "\${CYAN}📥 Скачивание скриптов установщика...\${NC}"
+    
+    TEMP_DIR=\$(mktemp -d)
+    git clone --depth 1 --single-branch --branch spiderman https://github.com/RamaPulya/bot_auto_install.git "\$TEMP_DIR" 2>/dev/null
+    
+    if [ -d "\$TEMP_DIR/scripts" ]; then
+        rm -rf "\$INSTALLER_DIR" 2>/dev/null
+        cp -r "\$TEMP_DIR/scripts" "\$INSTALLER_DIR"
+        chmod +x "\$INSTALLER_DIR"/*.sh 2>/dev/null
+        chmod +x "\$INSTALLER_DIR"/lib/*.sh 2>/dev/null
+        
+        VERSION=\$(cat "\$INSTALLER_DIR/VERSION" 2>/dev/null || echo "?")
+        echo -e "\${GREEN}✅ Скрипты установщика обновлены (v\$VERSION)\${NC}"
+    else
+        echo -e "\${RED}❌ Ошибка загрузки\${NC}"
+    fi
+    
+    rm -rf "\$TEMP_DIR"
 }
 
 do_backup() {
@@ -433,6 +461,47 @@ do_install() {
     fi
 }
 
+do_uninstall() {
+    check_install_dir
+    echo
+    echo -e "\${RED}═══════════════════════════════════════════════════════════════\${NC}"
+    echo -e "\${WHITE}🗑️  УДАЛЕНИЕ БОТА\${NC}"
+    echo -e "\${RED}═══════════════════════════════════════════════════════════════\${NC}"
+    echo
+    echo -e "\${YELLOW}⚠️  ВНИМАНИЕ! Это действие удалит:\${NC}"
+    echo -e "   - Docker контейнеры бота"
+    echo -e "   - Данные PostgreSQL и Redis (опционально)"
+    echo
+    
+    read -p "Введите 'yes' для подтверждения: " CONFIRM
+    if [ "\$CONFIRM" != "yes" ]; then
+        echo -e "\${GREEN}Удаление отменено\${NC}"
+        return
+    fi
+    
+    echo -e "\${CYAN}🛑 Остановка контейнеров...\${NC}"
+    docker compose -f "\$COMPOSE_FILE" down
+    
+    read -p "Удалить данные (volumes)? (y/n): " -n 1 -r
+    echo
+    if [[ \$REPLY =~ ^[Yy]\$ ]]; then
+        echo -e "\${CYAN}💾 Удаление volumes...\${NC}"
+        docker compose -f "\$COMPOSE_FILE" down -v
+        docker volume ls -q | grep -E "bedolaga|remnawave.*bot" | xargs -r docker volume rm 2>/dev/null
+        echo -e "\${GREEN}✅ Volumes удалены\${NC}"
+    fi
+    
+    if [ -f "/usr/local/bin/bot" ]; then
+        rm -f /usr/local/bin/bot
+        echo -e "\${GREEN}✅ Команда 'bot' удалена\${NC}"
+    fi
+    
+    echo
+    echo -e "\${GREEN}✅ Удаление завершено\${NC}"
+    echo -e "\${YELLOW}Директория \$INSTALL_DIR оставлена. Удалите вручную:\${NC}"
+    echo -e "\${CYAN}rm -rf \$INSTALL_DIR\${NC}"
+}
+
 show_menu() {
     clear
     echo -e "\${PURPLE}╔══════════════════════════════════════════════════════════════╗\${NC}"
@@ -456,7 +525,7 @@ show_menu() {
     echo -e "  \${CYAN}3)\${NC} 🔄 Перезапуск        \${CYAN}8)\${NC} ⚙️  Редактировать .env"
     echo -e "  \${CYAN}4)\${NC} ▶️  Запуск            \${CYAN}9)\${NC} 📦 Обновить бота"
     echo -e "  \${CYAN}5)\${NC} ⏹️  Остановка         \${CYAN}10)\${NC} 🛠️ Обновить скрипт"
-    echo -e "  \${CYAN}i)\${NC} 🔧 Установщик"
+    echo -e "  \${CYAN}i)\${NC} 🔧 Установщик        \${CYAN}0)\${NC} 🗑️  Удаление"
     echo
     echo -e "  \${CYAN}q)\${NC} Выход"
     echo
@@ -479,6 +548,7 @@ interactive_menu() {
             9) update_menu ;;
             10) update_installer; read -p "Нажмите Enter..." ;;
             i|I) do_install; read -p "Нажмите Enter..." ;;
+            0) do_uninstall; break ;;
             q|Q|exit) echo -e "\${GREEN}До свидания!\${NC}"; exit 0 ;;
             *) echo -e "\${RED}Неверный выбор\${NC}"; sleep 1 ;;
         esac
@@ -505,6 +575,8 @@ show_help() {
     echo -e "  \${GREEN}health\${NC}     — Диагностика"
     echo -e "  \${GREEN}config\${NC}     — Редактировать .env"
     echo -e "  \${GREEN}install\${NC}    — Запустить установщик"
+    echo -e "  \${GREEN}installer\${NC}  — Обновить скрипты установщика"
+    echo -e "  \${GREEN}uninstall\${NC}  — Удаление бота"
 }
 
 case "\$1" in
@@ -518,6 +590,8 @@ case "\$1" in
     health|check) do_health ;;
     config|edit) do_config ;;
     install|setup|reinstall) do_install ;;
+    installer|installer-update) update_installer ;;
+    uninstall|remove) do_uninstall ;;
     help|--help|-h) show_help ;;
     "")         interactive_menu ;;
     *)
