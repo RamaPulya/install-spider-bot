@@ -674,7 +674,7 @@ show_menu() {
     echo -e "  ${CYAN}4)${NC} ▶️  Запуск            ${CYAN}9)${NC} 📦 Обновить бота"
     echo -e "  ${CYAN}5)${NC} ⏹️  Остановка         ${CYAN}10)${NC} 🛠️ Обновить скрипт"
     echo
-    echo -e "  ${CYAN}i)${NC} 🔧 Установщик        ${CYAN}0)${NC} 🗑️  Удаление"
+    echo -e "  ${CYAN}i)${NC} 🔧 Установщик        ${CYAN}L)${NC} 🗑️  Удаление"
     echo -e "  ${CYAN}q)${NC} Выход"
     echo
 }
@@ -696,7 +696,7 @@ interactive_menu() {
             9) update_menu ;;
             10) update_installer_scripts; read -p "Нажмите Enter..." ;;
             i|I|install) do_install; read -p "Нажмите Enter..." ;;
-            0) do_uninstall; break ;;
+            l|L) do_uninstall; break ;;
             q|Q|exit) echo -e "${GREEN}До свидания!${NC}"; exit 0 ;;
             *) echo -e "${RED}Неверный выбор${NC}"; sleep 1 ;;
         esac
