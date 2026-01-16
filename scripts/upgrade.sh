@@ -147,7 +147,7 @@ do_status() {
 
 do_restart() {
     check_install_dir
-    echo -e "\${CYAN}🔄 Перезапуск бота...\${NC}"
+    echo -e "\${CYAN}🔄 Перезапуск бота (применяем .env)...\${NC}"
     
     # Проверяем и создаём сеть если нужно
     if grep -q "external: true" "\$COMPOSE_FILE" 2>/dev/null; then
@@ -157,7 +157,7 @@ do_restart() {
         fi
     fi
     
-    docker compose -f "\$COMPOSE_FILE" restart 2>&1
+    docker compose -f "\$COMPOSE_FILE" up -d --force-recreate 2>&1
     sleep 3
     if docker ps --format '{{.Names}}' | grep -q "remnawave_bot"; then
         echo -e "\${GREEN}✅ Бот перезапущен\${NC}"

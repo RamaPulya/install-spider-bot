@@ -94,8 +94,8 @@ do_status() {
 
 do_restart() {
     check_install_dir
-    echo -e "${CYAN}🔄 Перезапуск бота...${NC}"
-    docker compose -f "$COMPOSE_FILE" restart
+    echo -e "${CYAN}🔄 Перезапуск бота (применяем .env)...${NC}"
+    docker compose -f "$COMPOSE_FILE" up -d --force-recreate
     echo -e "${GREEN}✅ Бот перезапущен${NC}"
 }
 
