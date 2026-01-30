@@ -120,8 +120,23 @@ do_update() {
     # Создаём бэкап .env перед обновлением
     cp .env ".env.backup_$(date +%Y%m%d_%H%M%S)" 2>/dev/null
     
-    echo -e "${CYAN}1/4 Получение обновлений...${NC}"
-    git pull origin "$REPO_BRANCH"
+    echo -e "${CYAN}1/4 Получение обновлений (ветка: $REPO_BRANCH)...${NC}"
+    if [ -d ".git" ]; then
+        git fetch --unshallow 2>/dev/null || true
+        if ! git fetch origin "$REPO_BRANCH" --prune --tags; then
+            echo -e "${YELLOW}⚠️  Не удалось получить обновления из GitHub${NC}"
+        fi
+        if git show-ref --verify --quiet "refs/remotes/origin/$REPO_BRANCH"; then
+            git checkout -B "$REPO_BRANCH" "origin/$REPO_BRANCH" 2>/dev/null || git checkout "$REPO_BRANCH" 2>/dev/null || true
+            if ! git reset --hard "origin/$REPO_BRANCH"; then
+                echo -e "${YELLOW}⚠️  Не удалось обновить код до origin/$REPO_BRANCH${NC}"
+            fi
+        else
+            echo -e "${YELLOW}⚠️  В origin нет ветки $REPO_BRANCH${NC}"
+        fi
+    else
+        echo -e "${YELLOW}⚠️  Git-репозиторий не найден — обновление кода пропущено${NC}"
+    fi
     
     echo -e "${CYAN}2/4 Остановка контейнеров...${NC}"
     docker compose -f "$COMPOSE_FILE" down

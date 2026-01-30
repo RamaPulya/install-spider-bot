@@ -51,9 +51,28 @@ upgrade_bot() {
     echo -e "${WHITE}Текущая версия:${NC} $CURRENT_COMMIT"
     
     # Обновление кода
-    echo -e "${CYAN}📥 Получение обновлений...${NC}"
-    git fetch origin main
-    git reset --hard origin/main
+    echo -e "${CYAN}📥 Получение обновлений (ветка: ${REPO_BRANCH})...${NC}"
+
+    if [ ! -d ".git" ]; then
+        echo -e "${RED}❌ Git-репозиторий не найден в ${INSTALL_DIR}${NC}"
+        echo -e "${YELLOW}Похоже бот установлен не через git clone. Обновление кода пропущено.${NC}"
+    else
+        # Если репозиторий shallow (частая причина 'grafted' и не обновляется) — расширяем историю
+        git fetch --unshallow 2>/dev/null || true
+
+        if ! git fetch origin "${REPO_BRANCH}" --prune --tags; then
+            echo -e "${YELLOW}⚠️  Не удалось выполнить git fetch origin ${REPO_BRANCH}${NC}"
+        fi
+
+        if git show-ref --verify --quiet "refs/remotes/origin/${REPO_BRANCH}"; then
+            git checkout -B "${REPO_BRANCH}" "origin/${REPO_BRANCH}" 2>/dev/null || git checkout "${REPO_BRANCH}" 2>/dev/null || true
+            if ! git reset --hard "origin/${REPO_BRANCH}"; then
+                echo -e "${YELLOW}⚠️  Не удалось выполнить git reset --hard origin/${REPO_BRANCH}${NC}"
+            fi
+        else
+            echo -e "${YELLOW}⚠️  В origin нет ветки ${REPO_BRANCH}. Проверьте REPO_BRANCH в скрипте.${NC}"
+        fi
+    fi
     
     NEW_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
     echo -e "${WHITE}Новая версия:${NC} $NEW_COMMIT"
@@ -201,7 +220,24 @@ do_update() {
     check_install_dir
     echo -e "\${CYAN}📦 Обновление бота...\${NC}"
     cp .env ".env.backup_\$(date +%Y%m%d_%H%M%S)" 2>/dev/null
-    git pull origin "$REPO_BRANCH"
+
+    echo -e "\${CYAN}📥 Обновление кода (ветка: \$REPO_BRANCH)...\${NC}"
+    if [ -d ".git" ]; then
+        git fetch --unshallow 2>/dev/null || true
+        if ! git fetch origin "\$REPO_BRANCH" --prune --tags; then
+            echo -e "\${YELLOW}⚠️  Не удалось получить обновления из GitHub\${NC}"
+        fi
+        if git show-ref --verify --quiet "refs/remotes/origin/\$REPO_BRANCH"; then
+            git checkout -B "\$REPO_BRANCH" "origin/\$REPO_BRANCH" 2>/dev/null || git checkout "\$REPO_BRANCH" 2>/dev/null || true
+            if ! git reset --hard "origin/\$REPO_BRANCH"; then
+                echo -e "\${YELLOW}⚠️  Не удалось обновить код до origin/\$REPO_BRANCH\${NC}"
+            fi
+        else
+            echo -e "\${YELLOW}⚠️  В origin нет ветки \$REPO_BRANCH\${NC}"
+        fi
+    else
+        echo -e "\${YELLOW}⚠️  Git-репозиторий не найден — обновление кода пропущено\${NC}"
+    fi
     docker compose -f "\$COMPOSE_FILE" down
     docker compose -f "\$COMPOSE_FILE" build --no-cache
     docker compose -f "\$COMPOSE_FILE" up -d
