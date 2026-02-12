@@ -400,6 +400,14 @@ update_installer_scripts() {
         local NEW_VERSION=$(cat "$INSTALLER_DIR/VERSION" 2>/dev/null || echo "?")
         echo -e "${GREEN}✅ Обновлено до версии $NEW_VERSION${NC}"
         
+        # Автообновление команды bot на новую версию скриптов
+        cat > /usr/local/bin/bot << EOF
+#!/bin/bash
+exec bash "$INSTALLER_DIR/upgrade.sh" "\$@"
+EOF
+        chmod +x /usr/local/bin/bot
+        echo -e "${GREEN}✅ Команда bot обновлена автоматически${NC}"
+        
         # Удаляем старые бэкапы (оставляем последние 3)
         ls -dt "${INSTALLER_DIR}.backup_"* 2>/dev/null | tail -n +4 | xargs -r rm -rf
     else

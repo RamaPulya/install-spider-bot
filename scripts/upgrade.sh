@@ -315,6 +315,14 @@ update_installer() {
         
         VERSION=\$(cat "\$INSTALLER_DIR/VERSION" 2>/dev/null || echo "?")
         echo -e "\${GREEN}✅ Скрипты установщика обновлены (v\$VERSION)\${NC}"
+
+        # Автообновление команды bot на новую версию скриптов
+        cat > /usr/local/bin/bot << BOTCMD
+#!/bin/bash
+exec bash "\$INSTALLER_DIR/upgrade.sh" "\$@"
+BOTCMD
+        chmod +x /usr/local/bin/bot
+        echo -e "\${GREEN}✅ Команда bot обновлена автоматически\${NC}"
     else
         echo -e "\${RED}❌ Ошибка загрузки\${NC}"
     fi
