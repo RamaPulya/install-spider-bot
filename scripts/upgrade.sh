@@ -63,14 +63,22 @@ upgrade_bot() {
         if ! git fetch origin "${REPO_BRANCH}" --prune --tags; then
             echo -e "${YELLOW}⚠️  Не удалось выполнить git fetch origin ${REPO_BRANCH}${NC}"
         fi
+        git fetch origin "${REPO_BRANCH}:refs/remotes/origin/${REPO_BRANCH}" --update-head-ok >/dev/null 2>&1 || true
 
+        REMOTE_REF=""
         if git show-ref --verify --quiet "refs/remotes/origin/${REPO_BRANCH}"; then
-            git checkout -B "${REPO_BRANCH}" "origin/${REPO_BRANCH}" 2>/dev/null || git checkout "${REPO_BRANCH}" 2>/dev/null || true
-            if ! git reset --hard "origin/${REPO_BRANCH}"; then
-                echo -e "${YELLOW}⚠️  Не удалось выполнить git reset --hard origin/${REPO_BRANCH}${NC}"
+            REMOTE_REF="origin/${REPO_BRANCH}"
+        elif git rev-parse --verify --quiet FETCH_HEAD >/dev/null; then
+            REMOTE_REF="FETCH_HEAD"
+        fi
+
+        if [ -n "$REMOTE_REF" ]; then
+            git checkout -B "${REPO_BRANCH}" "$REMOTE_REF" 2>/dev/null || git checkout "${REPO_BRANCH}" 2>/dev/null || true
+            if ! git reset --hard "$REMOTE_REF"; then
+                echo -e "${YELLOW}⚠️  Не удалось выполнить git reset --hard $REMOTE_REF${NC}"
             fi
         else
-            echo -e "${YELLOW}⚠️  В origin нет ветки ${REPO_BRANCH}. Проверьте REPO_BRANCH в скрипте.${NC}"
+            echo -e "${YELLOW}⚠️  Не найдена ветка ${REPO_BRANCH} после fetch.${NC}"
         fi
     fi
     
@@ -227,7 +235,14 @@ do_update() {
         if ! git fetch origin "\$REPO_BRANCH" --prune --tags; then
             echo -e "\${YELLOW}⚠️  Не удалось получить обновления из GitHub\${NC}"
         fi
+        git fetch origin "\$REPO_BRANCH:refs/remotes/origin/\$REPO_BRANCH" --update-head-ok >/dev/null 2>&1 || true
+        TARGET_REF=""
         if git show-ref --verify --quiet "refs/remotes/origin/\$REPO_BRANCH"; then
+            TARGET_REF="origin/\$REPO_BRANCH"
+        elif git rev-parse --verify --quiet FETCH_HEAD >/dev/null; then
+            TARGET_REF="FETCH_HEAD"
+        fi
+        if [ -n "\$TARGET_REF" ]; then
             git checkout -B "\$REPO_BRANCH" "origin/\$REPO_BRANCH" 2>/dev/null || git checkout "\$REPO_BRANCH" 2>/dev/null || true
             if ! git reset --hard "origin/\$REPO_BRANCH"; then
                 echo -e "\${YELLOW}⚠️  Не удалось обновить код до origin/\$REPO_BRANCH\${NC}"

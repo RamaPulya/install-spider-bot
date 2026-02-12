@@ -126,13 +126,19 @@ do_update() {
         if ! git fetch origin "$REPO_BRANCH" --prune --tags; then
             echo -e "${YELLOW}⚠️  Не удалось получить обновления из GitHub${NC}"
         fi
+        REMOTE_REF=""
         if git show-ref --verify --quiet "refs/remotes/origin/$REPO_BRANCH"; then
-            git checkout -B "$REPO_BRANCH" "origin/$REPO_BRANCH" 2>/dev/null || git checkout "$REPO_BRANCH" 2>/dev/null || true
-            if ! git reset --hard "origin/$REPO_BRANCH"; then
-                echo -e "${YELLOW}⚠️  Не удалось обновить код до origin/$REPO_BRANCH${NC}"
+            REMOTE_REF="origin/$REPO_BRANCH"
+        elif git rev-parse --verify --quiet FETCH_HEAD >/dev/null; then
+            REMOTE_REF="FETCH_HEAD"
+        fi
+        if [ -n "$REMOTE_REF" ]; then
+            git checkout -B "$REPO_BRANCH" "$REMOTE_REF" 2>/dev/null || git checkout "$REPO_BRANCH" 2>/dev/null || true
+            if ! git reset --hard "$REMOTE_REF"; then
+                echo -e "${YELLOW}⚠️  Не удалось обновить код до $REMOTE_REF${NC}"
             fi
         else
-            echo -e "${YELLOW}⚠️  В origin нет ветки $REPO_BRANCH${NC}"
+            echo -e "${YELLOW}⚠️  Не найдена ветка $REPO_BRANCH после fetch${NC}"
         fi
     else
         echo -e "${YELLOW}⚠️  Git-репозиторий не найден — обновление кода пропущено${NC}"
@@ -168,9 +174,23 @@ show_update_info() {
 
     LOCAL_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "?")
     LOCAL_DATE=$(git log -1 --date=short --format=%ad 2>/dev/null || echo "?")
-    REMOTE_HASH=$(git rev-parse --short "origin/$REPO_BRANCH" 2>/dev/null || echo "?")
-    REMOTE_DATE=$(git log -1 "origin/$REPO_BRANCH" --date=short --format=%ad 2>/dev/null || echo "?")
-    BEHIND=$(git rev-list --count "HEAD..origin/$REPO_BRANCH" 2>/dev/null || echo "0")
+    REMOTE_REF=""
+    REMOTE_LABEL="origin/$REPO_BRANCH"
+    if git show-ref --verify --quiet "refs/remotes/origin/$REPO_BRANCH"; then
+        REMOTE_REF="origin/$REPO_BRANCH"
+    elif git rev-parse --verify --quiet FETCH_HEAD >/dev/null; then
+        REMOTE_REF="FETCH_HEAD"
+        REMOTE_LABEL="FETCH_HEAD"
+    fi
+    if [ -n "$REMOTE_REF" ]; then
+        REMOTE_HASH=$(git rev-parse --short "$REMOTE_REF" 2>/dev/null || echo "?")
+        REMOTE_DATE=$(git log -1 "$REMOTE_REF" --date=short --format=%ad 2>/dev/null || echo "?")
+        BEHIND=$(git rev-list --count "HEAD..$REMOTE_REF" 2>/dev/null || echo "0")
+    else
+        REMOTE_HASH="?"
+        REMOTE_DATE="?"
+        BEHIND="0"
+    fi
 
     echo -e "${WHITE}Локальная версия:${NC} ${CYAN}$LOCAL_HASH${NC} | $LOCAL_DATE"
     echo -e "${WHITE}Удаленная версия:${NC} ${CYAN}$REMOTE_HASH${NC} | $REMOTE_DATE"
@@ -181,8 +201,12 @@ show_update_info() {
         echo -e "${GREEN}Обновлений нет — вы на актуальной версии${NC}"
     fi
     echo
-    echo -e "${WHITE}Последние коммиты (origin/$REPO_BRANCH):${NC}"
-    git log -n 5 --date=short --pretty=format:"%h | %ad | %an | %s" "origin/$REPO_BRANCH" 2>/dev/null || echo "Нет данных"
+    echo -e "${WHITE}Последние коммиты ($REMOTE_LABEL):${NC}"
+    if [ -n "$REMOTE_REF" ]; then
+        git log -n 5 --date=short --pretty=format:"%h | %ad | %an | %s" "$REMOTE_REF" 2>/dev/null || echo "Нет данных"
+    else
+        echo "Нет данных"
+    fi
     echo
 }
 
@@ -692,9 +716,17 @@ show_version() {
         git fetch origin "$REPO_BRANCH" >/dev/null 2>&1 || true
         LOCAL_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "?")
         LOCAL_DATE=$(git log -1 --date=short --format=%ad 2>/dev/null || echo "?")
-        REMOTE_HASH=$(git rev-parse --short "origin/$REPO_BRANCH" 2>/dev/null || echo "?")
-        REMOTE_DATE=$(git log -1 "origin/$REPO_BRANCH" --date=short --format=%ad 2>/dev/null || echo "?")
-        BEHIND=$(git rev-list --count "HEAD..origin/$REPO_BRANCH" 2>/dev/null || echo "0")
+        REMOTE_REF=""
+        if git show-ref --verify --quiet "refs/remotes/origin/$REPO_BRANCH"; then
+            REMOTE_REF="origin/$REPO_BRANCH"
+        elif git rev-parse --verify --quiet FETCH_HEAD >/dev/null; then
+            REMOTE_REF="FETCH_HEAD"
+        fi
+        if [ -n "$REMOTE_REF" ]; then
+            REMOTE_HASH=$(git rev-parse --short "$REMOTE_REF" 2>/dev/null || echo "?")
+            REMOTE_DATE=$(git log -1 "$REMOTE_REF" --date=short --format=%ad 2>/dev/null || echo "?")
+            BEHIND=$(git rev-list --count "HEAD..$REMOTE_REF" 2>/dev/null || echo "0")
+        fi
     fi
 
     echo
