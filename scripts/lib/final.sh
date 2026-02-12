@@ -406,6 +406,9 @@ update_installer_scripts() {
 exec bash "$INSTALLER_DIR/upgrade.sh" "\$@"
 EOF
         chmod +x /usr/local/bin/bot
+        if [ -d "/usr/bin" ]; then
+            ln -sfn /usr/local/bin/bot /usr/bin/bot 2>/dev/null || true
+        fi
         echo -e "${GREEN}✅ Команда bot обновлена автоматически${NC}"
         
         # Удаляем старые бэкапы (оставляем последние 3)
@@ -820,6 +823,9 @@ BOTSCRIPT
     sed -i "s|__COMPOSE_FILE__|$compose_file|g" /usr/local/bin/bot
     
     chmod +x /usr/local/bin/bot
+    if [ -d "/usr/bin" ]; then
+        ln -sfn /usr/local/bin/bot /usr/bin/bot 2>/dev/null || true
+    fi
     
     print_success "Команда управления 'bot' создана"
     echo

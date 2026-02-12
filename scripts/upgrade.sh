@@ -322,6 +322,9 @@ update_installer() {
 exec bash "\$INSTALLER_DIR/upgrade.sh" "\$@"
 BOTCMD
         chmod +x /usr/local/bin/bot
+        if [ -d "/usr/bin" ]; then
+            ln -sfn /usr/local/bin/bot /usr/bin/bot 2>/dev/null || true
+        fi
         echo -e "\${GREEN}✅ Команда bot обновлена автоматически\${NC}"
     else
         echo -e "\${RED}❌ Ошибка загрузки\${NC}"
@@ -684,6 +687,9 @@ esac
 BOTEOF
 
     chmod +x /usr/local/bin/bot
+    if [ -d "/usr/bin" ]; then
+        ln -sfn /usr/local/bin/bot /usr/bin/bot 2>/dev/null || true
+    fi
     
     echo -e "${GREEN}✅ Команда 'bot' установлена!${NC}"
     echo
