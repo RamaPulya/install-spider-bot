@@ -1,9 +1,9 @@
-﻿#!/bin/bash
+#!/bin/bash
 
 # ===============================================
-# рџ”„ REMNAWAVE BEDOLAGA BOT - РћР‘РќРћР’Р›Р•РќРР•
+# 🔄 REMNAWAVE BEDOLAGA BOT - ОБНОВЛЕНИЕ
 # ===============================================
-# РќР• РёСЃРїРѕР»СЊР·СѓРµРј set -e С‡С‚РѕР±С‹ РїСЂРѕРґРѕР»Р¶РёС‚СЊ РїСЂРё РѕС€РёР±РєР°С…
+# НЕ используем set -e чтобы продолжить при ошибках
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -14,11 +14,11 @@ WHITE='\033[1;37m'
 NC='\033[0m'
 REPO_BRANCH="spiderman"
 
-# в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ
-# Р¤РЈРќРљР¦РР (РѕРїСЂРµРґРµР»СЏРµРј Р”Рћ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ)
-# в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ
+# ═══════════════════════════════════════════════════════════════
+# ФУНКЦИИ (определяем ДО использования)
+# ═══════════════════════════════════════════════════════════════
 
-# РђРІС‚РѕРѕРїСЂРµРґРµР»РµРЅРёРµ РґРёСЂРµРєС‚РѕСЂРёРё СѓСЃС‚Р°РЅРѕРІРєРё
+# Автоопределение директории установки
 find_install_dir() {
     if [ -d "/opt/remnawave-bedolaga-telegram-bot" ]; then
         echo "/opt/remnawave-bedolaga-telegram-bot"
@@ -31,105 +31,105 @@ find_install_dir() {
     fi
 }
 
-# Р¤СѓРЅРєС†РёСЏ РѕР±РЅРѕРІР»РµРЅРёСЏ Р±РѕС‚Р°
+# Функция обновления бота
 upgrade_bot() {
     echo
-    echo -e "${CYAN}в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ${NC}"
-    echo -e "${WHITE}рџ“¦ РћР‘РќРћР’Р›Р•РќРР• Р‘РћРўРђ${NC}"
-    echo -e "${CYAN}в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ${NC}"
+    echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${WHITE}📦 ОБНОВЛЕНИЕ БОТА${NC}"
+    echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
     
     cd "$INSTALL_DIR"
     
-    # РЎРѕР·РґР°РЅРёРµ Р±СЌРєР°РїР°
-    echo -e "${CYAN}рџ’ѕ РЎРѕР·РґР°РЅРёРµ Р±СЌРєР°РїР°...${NC}"
+    # Создание бэкапа
+    echo -e "${CYAN}💾 Создание бэкапа...${NC}"
     BACKUP_DIR="$INSTALL_DIR/data/backups"
     mkdir -p "$BACKUP_DIR"
     cp .env "$BACKUP_DIR/.env_$(date +%Y%m%d_%H%M%S)" 2>/dev/null || true
     
-    # РўРµРєСѓС‰Р°СЏ РІРµСЂСЃРёСЏ
+    # Текущая версия
     CURRENT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-    echo -e "${WHITE}РўРµРєСѓС‰Р°СЏ РІРµСЂСЃРёСЏ:${NC} $CURRENT_COMMIT"
+    echo -e "${WHITE}Текущая версия:${NC} $CURRENT_COMMIT"
     
-    # РћР±РЅРѕРІР»РµРЅРёРµ РєРѕРґР°
-    echo -e "${CYAN}рџ“Ґ РџРѕР»СѓС‡РµРЅРёРµ РѕР±РЅРѕРІР»РµРЅРёР№ (РІРµС‚РєР°: ${REPO_BRANCH})...${NC}"
+    # Обновление кода
+    echo -e "${CYAN}📥 Получение обновлений (ветка: ${REPO_BRANCH})...${NC}"
 
     if [ ! -d ".git" ]; then
-        echo -e "${RED}вќЊ Git-СЂРµРїРѕР·РёС‚РѕСЂРёР№ РЅРµ РЅР°Р№РґРµРЅ РІ ${INSTALL_DIR}${NC}"
-        echo -e "${YELLOW}РџРѕС…РѕР¶Рµ Р±РѕС‚ СѓСЃС‚Р°РЅРѕРІР»РµРЅ РЅРµ С‡РµСЂРµР· git clone. РћР±РЅРѕРІР»РµРЅРёРµ РєРѕРґР° РїСЂРѕРїСѓС‰РµРЅРѕ.${NC}"
+        echo -e "${RED}❌ Git-репозиторий не найден в ${INSTALL_DIR}${NC}"
+        echo -e "${YELLOW}Похоже бот установлен не через git clone. Обновление кода пропущено.${NC}"
     else
-        # Р•СЃР»Рё СЂРµРїРѕР·РёС‚РѕСЂРёР№ shallow (С‡Р°СЃС‚Р°СЏ РїСЂРёС‡РёРЅР° 'grafted' Рё РЅРµ РѕР±РЅРѕРІР»СЏРµС‚СЃСЏ) вЂ” СЂР°СЃС€РёСЂСЏРµРј РёСЃС‚РѕСЂРёСЋ
+        # Если репозиторий shallow (частая причина 'grafted' и не обновляется) — расширяем историю
         git fetch --unshallow 2>/dev/null || true
 
         if ! git fetch origin "${REPO_BRANCH}" --prune --tags; then
-            echo -e "${YELLOW}вљ пёЏ  РќРµ СѓРґР°Р»РѕСЃСЊ РІС‹РїРѕР»РЅРёС‚СЊ git fetch origin ${REPO_BRANCH}${NC}"
+            echo -e "${YELLOW}⚠️  Не удалось выполнить git fetch origin ${REPO_BRANCH}${NC}"
         fi
 
         if git show-ref --verify --quiet "refs/remotes/origin/${REPO_BRANCH}"; then
             git checkout -B "${REPO_BRANCH}" "origin/${REPO_BRANCH}" 2>/dev/null || git checkout "${REPO_BRANCH}" 2>/dev/null || true
             if ! git reset --hard "origin/${REPO_BRANCH}"; then
-                echo -e "${YELLOW}вљ пёЏ  РќРµ СѓРґР°Р»РѕСЃСЊ РІС‹РїРѕР»РЅРёС‚СЊ git reset --hard origin/${REPO_BRANCH}${NC}"
+                echo -e "${YELLOW}⚠️  Не удалось выполнить git reset --hard origin/${REPO_BRANCH}${NC}"
             fi
         else
-            echo -e "${YELLOW}вљ пёЏ  Р’ origin РЅРµС‚ РІРµС‚РєРё ${REPO_BRANCH}. РџСЂРѕРІРµСЂСЊС‚Рµ REPO_BRANCH РІ СЃРєСЂРёРїС‚Рµ.${NC}"
+            echo -e "${YELLOW}⚠️  В origin нет ветки ${REPO_BRANCH}. Проверьте REPO_BRANCH в скрипте.${NC}"
         fi
     fi
     
     NEW_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-    echo -e "${WHITE}РќРѕРІР°СЏ РІРµСЂСЃРёСЏ:${NC} $NEW_COMMIT"
+    echo -e "${WHITE}Новая версия:${NC} $NEW_COMMIT"
     
     if [ "$CURRENT_COMMIT" = "$NEW_COMMIT" ]; then
-        echo -e "${GREEN}вњ… РЈР¶Рµ Р°РєС‚СѓР°Р»СЊРЅР°СЏ РІРµСЂСЃРёСЏ${NC}"
+        echo -e "${GREEN}✅ Уже актуальная версия${NC}"
     else
-        echo -e "${GREEN}вњ… РљРѕРґ РѕР±РЅРѕРІР»С‘РЅ: $CURRENT_COMMIT в†’ $NEW_COMMIT${NC}"
+        echo -e "${GREEN}✅ Код обновлён: $CURRENT_COMMIT → $NEW_COMMIT${NC}"
     fi
     
-    # РџРµСЂРµСЃР±РѕСЂРєР° РєРѕРЅС‚РµР№РЅРµСЂРѕРІ
-    echo -e "${CYAN}рџђі РџРµСЂРµСЃР±РѕСЂРєР° РєРѕРЅС‚РµР№РЅРµСЂРѕРІ...${NC}"
+    # Пересборка контейнеров
+    echo -e "${CYAN}🐳 Пересборка контейнеров...${NC}"
     docker compose -f "$COMPOSE_FILE" down || true
     docker compose -f "$COMPOSE_FILE" build --no-cache
     
     if docker compose -f "$COMPOSE_FILE" up -d; then
-        echo -e "${GREEN}вњ… Р‘РѕС‚ РѕР±РЅРѕРІР»С‘РЅ Рё Р·Р°РїСѓС‰РµРЅ${NC}"
+        echo -e "${GREEN}✅ Бот обновлён и запущен${NC}"
     else
-        echo -e "${RED}вљ пёЏ  РћС€РёР±РєР° Р·Р°РїСѓСЃРєР° РєРѕРЅС‚РµР№РЅРµСЂРѕРІ!${NC}"
-        echo -e "${YELLOW}РџСЂРѕРІРµСЂСЊС‚Рµ: docker compose -f $COMPOSE_FILE logs${NC}"
-        echo -e "${YELLOW}Р’РѕР·РјРѕР¶РЅРѕ РЅСѓР¶РЅРѕ СЃРѕР·РґР°С‚СЊ СЃРµС‚СЊ: docker network create remnawave-network${NC}"
+        echo -e "${RED}⚠️  Ошибка запуска контейнеров!${NC}"
+        echo -e "${YELLOW}Проверьте: docker compose -f $COMPOSE_FILE logs${NC}"
+        echo -e "${YELLOW}Возможно нужно создать сеть: docker network create remnawave-network${NC}"
     fi
 }
 
-# Р¤СѓРЅРєС†РёСЏ СѓСЃС‚Р°РЅРѕРІРєРё РєРѕРјР°РЅРґС‹ bot
+# Функция установки команды bot
 install_bot_command() {
     echo
-    echo -e "${CYAN}в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ${NC}"
-    echo -e "${WHITE}рџЋ® РЈРЎРўРђРќРћР’РљРђ РљРћРњРђРќР”Р« 'bot'${NC}"
-    echo -e "${CYAN}в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ${NC}"
+    echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${WHITE}🎮 УСТАНОВКА КОМАНДЫ 'bot'${NC}"
+    echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
     
     if [ -f "/usr/local/bin/bot" ]; then
-        echo -e "${YELLOW}РљРѕРјР°РЅРґР° 'bot' СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚. РћР±РЅРѕРІРёС‚СЊ? (y/n) [y]:${NC}"
+        echo -e "${YELLOW}Команда 'bot' уже существует. Обновить? (y/n) [y]:${NC}"
         read -n 1 -r REPLY < /dev/tty
         echo
         REPLY=${REPLY:-y}
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            echo -e "${YELLOW}РџСЂРѕРїСѓС‰РµРЅРѕ${NC}"
+            echo -e "${YELLOW}Пропущено${NC}"
             return
         fi
     fi
     
-    echo -e "${CYAN}рџ“ќ РЎРѕР·РґР°РЅРёРµ РєРѕРјР°РЅРґС‹ 'bot'...${NC}"
+    echo -e "${CYAN}📝 Создание команды 'bot'...${NC}"
     
-    # РЎРѕР·РґР°С‘Рј СЃРєСЂРёРїС‚ bot
+    # Создаём скрипт bot
     cat > /usr/local/bin/bot << BOTEOF
 #!/bin/bash
-# в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ
-# рџ¤– REMNAWAVE BEDOLAGA BOT - РљРћРњРђРќР”Рђ РЈРџР РђР’Р›Р•РќРРЇ
-# в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ
+# ═══════════════════════════════════════════════════════════════
+# 🤖 REMNAWAVE BEDOLAGA BOT - КОМАНДА УПРАВЛЕНИЯ
+# ═══════════════════════════════════════════════════════════════
 
 INSTALL_DIR="$INSTALL_DIR"
 COMPOSE_FILE="$COMPOSE_FILE"
 INSTALLER_DIR="$INSTALL_DIR/.installer"
 REPO_BRANCH="spiderman"
 
-# Р¦РІРµС‚Р°
+# Цвета
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -140,7 +140,7 @@ NC='\033[0m'
 
 check_install_dir() {
     if [ ! -d "\$INSTALL_DIR" ]; then
-        echo -e "\${RED}вќЊ Р”РёСЂРµРєС‚РѕСЂРёСЏ Р±РѕС‚Р° РЅРµ РЅР°Р№РґРµРЅР°: \$INSTALL_DIR\${NC}"
+        echo -e "\${RED}❌ Директория бота не найдена: \$INSTALL_DIR\${NC}"
         exit 1
     fi
     cd "\$INSTALL_DIR"
@@ -148,30 +148,30 @@ check_install_dir() {
 
 do_logs() {
     check_install_dir
-    echo -e "\${CYAN}рџ“‹ Р›РѕРіРё Р±РѕС‚Р° (Ctrl+C РґР»СЏ РІС‹С…РѕРґР°)...\${NC}"
+    echo -e "\${CYAN}📋 Логи бота (Ctrl+C для выхода)...\${NC}"
     docker compose -f "\$COMPOSE_FILE" logs -f --tail=150 bot
 }
 
 do_status() {
     check_install_dir
-    echo -e "\${CYAN}в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ\${NC}"
-    echo -e "\${WHITE}рџ“Љ РЎРўРђРўРЈРЎ РљРћРќРўР•Р™РќР•Р РћР’\${NC}"
-    echo -e "\${CYAN}в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ\${NC}"
+    echo -e "\${CYAN}═══════════════════════════════════════════════════════════════\${NC}"
+    echo -e "\${WHITE}📊 СТАТУС КОНТЕЙНЕРОВ\${NC}"
+    echo -e "\${CYAN}═══════════════════════════════════════════════════════════════\${NC}"
     echo
     docker compose -f "\$COMPOSE_FILE" ps
     echo
-    echo -e "\${WHITE}рџ“€ РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ СЂРµСЃСѓСЂСЃРѕРІ:\${NC}"
-    docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}" 2>/dev/null | grep -E "remnawave|postgres|redis" || echo "РљРѕРЅС‚РµР№РЅРµСЂС‹ РЅРµ Р·Р°РїСѓС‰РµРЅС‹"
+    echo -e "\${WHITE}📈 Использование ресурсов:\${NC}"
+    docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}" 2>/dev/null | grep -E "remnawave|postgres|redis" || echo "Контейнеры не запущены"
 }
 
 do_restart() {
     check_install_dir
-    echo -e "\${CYAN}рџ”„ РџРµСЂРµР·Р°РїСѓСЃРє Р±РѕС‚Р° (РїСЂРёРјРµРЅСЏРµРј .env)...\${NC}"
+    echo -e "\${CYAN}🔄 Перезапуск бота (применяем .env)...\${NC}"
     
-    # РџСЂРѕРІРµСЂСЏРµРј Рё СЃРѕР·РґР°С‘Рј СЃРµС‚СЊ РµСЃР»Рё РЅСѓР¶РЅРѕ
+    # Проверяем и создаём сеть если нужно
     if grep -q "external: true" "\$COMPOSE_FILE" 2>/dev/null; then
         if ! docker network ls --format '{{.Name}}' | grep -q "remnawave-network"; then
-            echo -e "\${YELLOW}РЎРѕР·РґР°С‘Рј СЃРµС‚СЊ remnawave-network...\${NC}"
+            echo -e "\${YELLOW}Создаём сеть remnawave-network...\${NC}"
             docker network create remnawave-network 2>/dev/null || true
         fi
     fi
@@ -179,20 +179,20 @@ do_restart() {
     docker compose -f "\$COMPOSE_FILE" up -d --force-recreate 2>&1
     sleep 3
     if docker ps --format '{{.Names}}' | grep -q "remnawave_bot"; then
-        echo -e "\${GREEN}вњ… Р‘РѕС‚ РїРµСЂРµР·Р°РїСѓС‰РµРЅ\${NC}"
+        echo -e "\${GREEN}✅ Бот перезапущен\${NC}"
     else
-        echo -e "\${RED}вќЊ Р‘РѕС‚ РЅРµ Р·Р°РїСѓСЃС‚РёР»СЃСЏ! РџСЂРѕРІРµСЂСЊС‚Рµ Р»РѕРіРё: bot logs\${NC}"
+        echo -e "\${RED}❌ Бот не запустился! Проверьте логи: bot logs\${NC}"
     fi
 }
 
 do_start() {
     check_install_dir
-    echo -e "\${CYAN}в–¶пёЏ  Р—Р°РїСѓСЃРє Р±РѕС‚Р°...\${NC}"
+    echo -e "\${CYAN}▶️  Запуск бота...\${NC}"
     
-    # РџСЂРѕРІРµСЂСЏРµРј Рё СЃРѕР·РґР°С‘Рј СЃРµС‚СЊ РµСЃР»Рё РЅСѓР¶РЅРѕ
+    # Проверяем и создаём сеть если нужно
     if grep -q "external: true" "\$COMPOSE_FILE" 2>/dev/null; then
         if ! docker network ls --format '{{.Name}}' | grep -q "remnawave-network"; then
-            echo -e "\${YELLOW}РЎРѕР·РґР°С‘Рј СЃРµС‚СЊ remnawave-network...\${NC}"
+            echo -e "\${YELLOW}Создаём сеть remnawave-network...\${NC}"
             docker network create remnawave-network 2>/dev/null || true
         fi
     fi
@@ -200,64 +200,64 @@ do_start() {
     if docker compose -f "\$COMPOSE_FILE" up -d 2>&1; then
         sleep 3
         if docker ps --format '{{.Names}}' | grep -q "remnawave_bot"; then
-            echo -e "\${GREEN}вњ… Р‘РѕС‚ Р·Р°РїСѓС‰РµРЅ\${NC}"
+            echo -e "\${GREEN}✅ Бот запущен\${NC}"
         else
-            echo -e "\${RED}вќЊ Р‘РѕС‚ РЅРµ Р·Р°РїСѓСЃС‚РёР»СЃСЏ! РџСЂРѕРІРµСЂСЊС‚Рµ Р»РѕРіРё: bot logs\${NC}"
+            echo -e "\${RED}❌ Бот не запустился! Проверьте логи: bot logs\${NC}"
         fi
     else
-        echo -e "\${RED}вќЊ РћС€РёР±РєР° Р·Р°РїСѓСЃРєР°!\${NC}"
+        echo -e "\${RED}❌ Ошибка запуска!\${NC}"
     fi
 }
 
 do_stop() {
     check_install_dir
-    echo -e "\${CYAN}вЏ№пёЏ  РћСЃС‚Р°РЅРѕРІРєР° Р±РѕС‚Р°...\${NC}"
+    echo -e "\${CYAN}⏹️  Остановка бота...\${NC}"
     docker compose -f "\$COMPOSE_FILE" down
-    echo -e "\${GREEN}вњ… Р‘РѕС‚ РѕСЃС‚Р°РЅРѕРІР»РµРЅ\${NC}"
+    echo -e "\${GREEN}✅ Бот остановлен\${NC}"
 }
 
 do_update() {
     check_install_dir
-    echo -e "\${CYAN}рџ“¦ РћР±РЅРѕРІР»РµРЅРёРµ Р±РѕС‚Р°...\${NC}"
+    echo -e "\${CYAN}📦 Обновление бота...\${NC}"
     cp .env ".env.backup_\$(date +%Y%m%d_%H%M%S)" 2>/dev/null
 
-    echo -e "\${CYAN}рџ“Ґ РћР±РЅРѕРІР»РµРЅРёРµ РєРѕРґР° (РІРµС‚РєР°: \$REPO_BRANCH)...\${NC}"
+    echo -e "\${CYAN}📥 Обновление кода (ветка: \$REPO_BRANCH)...\${NC}"
     if [ -d ".git" ]; then
         git fetch --unshallow 2>/dev/null || true
         if ! git fetch origin "\$REPO_BRANCH" --prune --tags; then
-            echo -e "\${YELLOW}вљ пёЏ  РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РѕР±РЅРѕРІР»РµРЅРёСЏ РёР· GitHub\${NC}"
+            echo -e "\${YELLOW}⚠️  Не удалось получить обновления из GitHub\${NC}"
         fi
         if git show-ref --verify --quiet "refs/remotes/origin/\$REPO_BRANCH"; then
             git checkout -B "\$REPO_BRANCH" "origin/\$REPO_BRANCH" 2>/dev/null || git checkout "\$REPO_BRANCH" 2>/dev/null || true
             if ! git reset --hard "origin/\$REPO_BRANCH"; then
-                echo -e "\${YELLOW}вљ пёЏ  РќРµ СѓРґР°Р»РѕСЃСЊ РѕР±РЅРѕРІРёС‚СЊ РєРѕРґ РґРѕ origin/\$REPO_BRANCH\${NC}"
+                echo -e "\${YELLOW}⚠️  Не удалось обновить код до origin/\$REPO_BRANCH\${NC}"
             fi
         else
-            echo -e "\${YELLOW}вљ пёЏ  Р’ origin РЅРµС‚ РІРµС‚РєРё \$REPO_BRANCH\${NC}"
+            echo -e "\${YELLOW}⚠️  В origin нет ветки \$REPO_BRANCH\${NC}"
         fi
     else
-        echo -e "\${YELLOW}вљ пёЏ  Git-СЂРµРїРѕР·РёС‚РѕСЂРёР№ РЅРµ РЅР°Р№РґРµРЅ вЂ” РѕР±РЅРѕРІР»РµРЅРёРµ РєРѕРґР° РїСЂРѕРїСѓС‰РµРЅРѕ\${NC}"
+        echo -e "\${YELLOW}⚠️  Git-репозиторий не найден — обновление кода пропущено\${NC}"
     fi
     docker compose -f "\$COMPOSE_FILE" down
     docker compose -f "\$COMPOSE_FILE" build --no-cache
     docker compose -f "\$COMPOSE_FILE" up -d
-    echo -e "\${GREEN}вњ… РћР±РЅРѕРІР»РµРЅРёРµ Р·Р°РІРµСЂС€РµРЅРѕ\${NC}"
+    echo -e "\${GREEN}✅ Обновление завершено\${NC}"
 }
 
 show_update_info() {
     check_install_dir
-    echo -e "\${CYAN}в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ\${NC}"
-    echo -e "\${WHITE}рџ“¦ РћР‘РќРћР’Р›Р•РќРР• Р‘РћРўРђ\${NC}"
-    echo -e "\${CYAN}в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ\${NC}"
+    echo -e "\${CYAN}═══════════════════════════════════════════════════════════════\${NC}"
+    echo -e "\${WHITE}📦 ОБНОВЛЕНИЕ БОТА\${NC}"
+    echo -e "\${CYAN}═══════════════════════════════════════════════════════════════\${NC}"
     echo
 
     if [ ! -d ".git" ]; then
-        echo -e "\${RED}вќЊ Git-СЂРµРїРѕР·РёС‚РѕСЂРёР№ РЅРµ РЅР°Р№РґРµРЅ\${NC}"
+        echo -e "\${RED}❌ Git-репозиторий не найден\${NC}"
         return 1
     fi
 
     if ! git fetch origin "\$REPO_BRANCH" >/dev/null 2>&1; then
-        echo -e "\${YELLOW}вљ пёЏ  РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РѕР±РЅРѕРІР»РµРЅРёСЏ РёР· GitHub\${NC}"
+        echo -e "\${YELLOW}⚠️  Не удалось получить обновления из GitHub\${NC}"
     fi
 
     LOCAL_HASH=\$(git rev-parse --short HEAD 2>/dev/null || echo "?")
@@ -266,43 +266,43 @@ show_update_info() {
     REMOTE_DATE=\$(git log -1 "origin/\$REPO_BRANCH" --date=short --format=%ad 2>/dev/null || echo "?")
     BEHIND=\$(git rev-list --count "HEAD..origin/\$REPO_BRANCH" 2>/dev/null || echo "0")
 
-    echo -e "\${WHITE}Р›РѕРєР°Р»СЊРЅР°СЏ РІРµСЂСЃРёСЏ:\${NC} \${CYAN}\$LOCAL_HASH\${NC} | \$LOCAL_DATE"
-    echo -e "\${WHITE}РЈРґР°Р»РµРЅРЅР°СЏ РІРµСЂСЃРёСЏ:\${NC} \${CYAN}\$REMOTE_HASH\${NC} | \$REMOTE_DATE"
+    echo -e "\${WHITE}Локальная версия:\${NC} \${CYAN}\$LOCAL_HASH\${NC} | \$LOCAL_DATE"
+    echo -e "\${WHITE}Удаленная версия:\${NC} \${CYAN}\$REMOTE_HASH\${NC} | \$REMOTE_DATE"
     echo
     if [ "\$BEHIND" -gt 0 ] 2>/dev/null; then
-        echo -e "\${YELLOW}Р”РѕСЃС‚СѓРїРЅРѕ РѕР±РЅРѕРІР»РµРЅРёР№: \$BEHIND\${NC}"
+        echo -e "\${YELLOW}Доступно обновлений: \$BEHIND\${NC}"
     else
-        echo -e "\${GREEN}РћР±РЅРѕРІР»РµРЅРёР№ РЅРµС‚ вЂ” РІС‹ РЅР° Р°РєС‚СѓР°Р»СЊРЅРѕР№ РІРµСЂСЃРёРё\${NC}"
+        echo -e "\${GREEN}Обновлений нет — вы на актуальной версии\${NC}"
     fi
     echo
-    echo -e "\${WHITE}РџРѕСЃР»РµРґРЅРёРµ РєРѕРјРјРёС‚С‹ (origin/\$REPO_BRANCH):\${NC}"
-    git log -n 5 --date=short --pretty=format:"%h | %ad | %an | %s" "origin/\$REPO_BRANCH" 2>/dev/null || echo "РќРµС‚ РґР°РЅРЅС‹С…"
+    echo -e "\${WHITE}Последние коммиты (origin/\$REPO_BRANCH):\${NC}"
+    git log -n 5 --date=short --pretty=format:"%h | %ad | %an | %s" "origin/\$REPO_BRANCH" 2>/dev/null || echo "Нет данных"
     echo
 }
 
 update_menu() {
     while true; do
         show_update_info || true
-        echo -e "\${WHITE}Р’С‹Р±РµСЂРёС‚Рµ РґРµР№СЃС‚РІРёРµ:\${NC}"
-        echo -e "  \${CYAN}1)\${NC} рџ“¦ РћР±РЅРѕРІРёС‚СЊ Р±РѕС‚Р°"
-        echo -e "  \${CYAN}0)\${NC} РќР°Р·Р°Рґ"
+        echo -e "\${WHITE}Выберите действие:\${NC}"
+        echo -e "  \${CYAN}1)\${NC} 📦 Обновить бота"
+        echo -e "  \${CYAN}0)\${NC} Назад"
         echo
-        read -p "Р’Р°С€ РІС‹Р±РѕСЂ: " choice
+        read -p "Ваш выбор: " choice
         case \$choice in
-            1) do_update; read -p "РќР°Р¶РјРёС‚Рµ Enter..." ;;
+            1) do_update; read -p "Нажмите Enter..." ;;
             0) return ;;
-            *) echo -e "\${RED}РќРµРІРµСЂРЅС‹Р№ РІС‹Р±РѕСЂ\${NC}"; sleep 1 ;;
+            *) echo -e "\${RED}Неверный выбор\${NC}"; sleep 1 ;;
         esac
     done
 }
 
 update_installer() {
     echo
-    echo -e "\${CYAN}в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ\${NC}"
-    echo -e "\${WHITE}рџ”§ РћР‘РќРћР’Р›Р•РќРР• РЎРљР РРџРўРћР’ РЈРЎРўРђРќРћР’Р©РРљРђ\${NC}"
-    echo -e "\${CYAN}в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ\${NC}"
+    echo -e "\${CYAN}═══════════════════════════════════════════════════════════════\${NC}"
+    echo -e "\${WHITE}🔧 ОБНОВЛЕНИЕ СКРИПТОВ УСТАНОВЩИКА\${NC}"
+    echo -e "\${CYAN}═══════════════════════════════════════════════════════════════\${NC}"
     
-    echo -e "\${CYAN}рџ“Ґ РЎРєР°С‡РёРІР°РЅРёРµ СЃРєСЂРёРїС‚РѕРІ СѓСЃС‚Р°РЅРѕРІС‰РёРєР°...\${NC}"
+    echo -e "\${CYAN}📥 Скачивание скриптов установщика...\${NC}"
     
     TEMP_DIR=\$(mktemp -d)
     git clone --depth 1 --single-branch --branch spiderman https://github.com/RamaPulya/bot_auto_install.git "\$TEMP_DIR" 2>/dev/null
@@ -314,9 +314,9 @@ update_installer() {
         chmod +x "\$INSTALLER_DIR"/lib/*.sh 2>/dev/null
         
         VERSION=\$(cat "\$INSTALLER_DIR/VERSION" 2>/dev/null || echo "?")
-        echo -e "\${GREEN}вњ… РЎРєСЂРёРїС‚С‹ СѓСЃС‚Р°РЅРѕРІС‰РёРєР° РѕР±РЅРѕРІР»РµРЅС‹ (v\$VERSION)\${NC}"
+        echo -e "\${GREEN}✅ Скрипты установщика обновлены (v\$VERSION)\${NC}"
     else
-        echo -e "\${RED}вќЊ РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё\${NC}"
+        echo -e "\${RED}❌ Ошибка загрузки\${NC}"
     fi
     
     rm -rf "\$TEMP_DIR"
@@ -329,18 +329,18 @@ do_backup() {
     local BACKUP_NAME="backup_\$TIMESTAMP"
     mkdir -p "\$BACKUP_DIR/\$BACKUP_NAME"
     
-    echo -e "\${CYAN}в•”в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•—\${NC}"
-    echo -e "\${CYAN}в•‘           рџ’ѕ РЎРћР—Р”РђРќРР• Р Р•Р—Р•Р Р’РќРћР™ РљРћРџРР рџ’ѕ                     в•‘\${NC}"
-    echo -e "\${CYAN}в•љв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ќ\${NC}"
+    echo -e "\${CYAN}╔══════════════════════════════════════════════════════════════╗\${NC}"
+    echo -e "\${CYAN}║           💾 СОЗДАНИЕ РЕЗЕРВНОЙ КОПИИ 💾                     ║\${NC}"
+    echo -e "\${CYAN}╚══════════════════════════════════════════════════════════════╝\${NC}"
     echo
     
     # 1. PostgreSQL
     echo -e "\${WHITE}1/4 PostgreSQL...\${NC}"
     if docker compose -f "\$COMPOSE_FILE" exec -T postgres pg_dump -U remnawave_user remnawave_bot > "\$BACKUP_DIR/\$BACKUP_NAME/database.sql" 2>/dev/null; then
         local DB_SIZE=\$(du -h "\$BACKUP_DIR/\$BACKUP_NAME/database.sql" | cut -f1)
-        echo -e "    \${GREEN}вњ… database.sql (\$DB_SIZE)\${NC}"
+        echo -e "    \${GREEN}✅ database.sql (\$DB_SIZE)\${NC}"
     else
-        echo -e "    \${RED}вќЊ РћС€РёР±РєР° Р±СЌРєР°РїР° PostgreSQL\${NC}"
+        echo -e "    \${RED}❌ Ошибка бэкапа PostgreSQL\${NC}"
     fi
     
     # 2. Redis
@@ -350,99 +350,99 @@ do_backup() {
         docker compose -f "\$COMPOSE_FILE" exec -T redis cat /data/dump.rdb > "\$BACKUP_DIR/\$BACKUP_NAME/redis.rdb" 2>/dev/null
         if [ -s "\$BACKUP_DIR/\$BACKUP_NAME/redis.rdb" ]; then
             local REDIS_SIZE=\$(du -h "\$BACKUP_DIR/\$BACKUP_NAME/redis.rdb" | cut -f1)
-            echo -e "    \${GREEN}вњ… redis.rdb (\$REDIS_SIZE)\${NC}"
+            echo -e "    \${GREEN}✅ redis.rdb (\$REDIS_SIZE)\${NC}"
         else
-            echo -e "    \${YELLOW}вљ пёЏ  Redis РїСѓСЃС‚ РёР»Рё РЅРµРґРѕСЃС‚СѓРїРµРЅ\${NC}"
+            echo -e "    \${YELLOW}⚠️  Redis пуст или недоступен\${NC}"
             rm -f "\$BACKUP_DIR/\$BACKUP_NAME/redis.rdb"
         fi
     else
-        echo -e "    \${YELLOW}вљ пёЏ  Redis РЅРµРґРѕСЃС‚СѓРїРµРЅ\${NC}"
+        echo -e "    \${YELLOW}⚠️  Redis недоступен\${NC}"
     fi
     
-    # 3. РљРѕРЅС„РёРіСѓСЂР°С†РёСЏ
-    echo -e "\${WHITE}3/4 РљРѕРЅС„РёРіСѓСЂР°С†РёСЏ...\${NC}"
-    cp .env "\$BACKUP_DIR/\$BACKUP_NAME/.env" 2>/dev/null && echo -e "    \${GREEN}вњ… .env\${NC}"
-    cp docker-compose*.yml "\$BACKUP_DIR/\$BACKUP_NAME/" 2>/dev/null && echo -e "    \${GREEN}вњ… docker-compose.yml\${NC}"
+    # 3. Конфигурация
+    echo -e "\${WHITE}3/4 Конфигурация...\${NC}"
+    cp .env "\$BACKUP_DIR/\$BACKUP_NAME/.env" 2>/dev/null && echo -e "    \${GREEN}✅ .env\${NC}"
+    cp docker-compose*.yml "\$BACKUP_DIR/\$BACKUP_NAME/" 2>/dev/null && echo -e "    \${GREEN}✅ docker-compose.yml\${NC}"
     
-    # 4. Р”Р°РЅРЅС‹Рµ (QR-РєРѕРґС‹ Рё С‚.Рґ.)
-    echo -e "\${WHITE}4/4 Р”Р°РЅРЅС‹Рµ...\${NC}"
+    # 4. Данные (QR-коды и т.д.)
+    echo -e "\${WHITE}4/4 Данные...\${NC}"
     if [ -d "data" ] && [ "\$(ls -A data 2>/dev/null)" ]; then
         tar -czf "\$BACKUP_DIR/\$BACKUP_NAME/data.tar.gz" data 2>/dev/null
         if [ -f "\$BACKUP_DIR/\$BACKUP_NAME/data.tar.gz" ]; then
             local DATA_SIZE=\$(du -h "\$BACKUP_DIR/\$BACKUP_NAME/data.tar.gz" | cut -f1)
-            echo -e "    \${GREEN}вњ… data.tar.gz (\$DATA_SIZE)\${NC}"
+            echo -e "    \${GREEN}✅ data.tar.gz (\$DATA_SIZE)\${NC}"
         fi
     else
-        echo -e "    \${YELLOW}вљ пёЏ  РџР°РїРєР° data РїСѓСЃС‚Р°\${NC}"
+        echo -e "    \${YELLOW}⚠️  Папка data пуста\${NC}"
     fi
     
-    # РС‚РѕРі
+    # Итог
     echo
     local TOTAL_SIZE=\$(du -sh "\$BACKUP_DIR/\$BACKUP_NAME" | cut -f1)
-    echo -e "\${GREEN}в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ\${NC}"
-    echo -e "\${GREEN}вњ… Р‘СЌРєР°Рї СЃРѕР·РґР°РЅ: \$BACKUP_DIR/\$BACKUP_NAME\${NC}"
-    echo -e "\${GREEN}   Р Р°Р·РјРµСЂ: \$TOTAL_SIZE\${NC}"
-    echo -e "\${GREEN}в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ\${NC}"
+    echo -e "\${GREEN}═══════════════════════════════════════════════════════════════\${NC}"
+    echo -e "\${GREEN}✅ Бэкап создан: \$BACKUP_DIR/\$BACKUP_NAME\${NC}"
+    echo -e "\${GREEN}   Размер: \$TOTAL_SIZE\${NC}"
+    echo -e "\${GREEN}═══════════════════════════════════════════════════════════════\${NC}"
     
-    # РЈРґР°Р»СЏРµРј СЃС‚Р°СЂС‹Рµ Р±СЌРєР°РїС‹ (РѕСЃС‚Р°РІР»СЏРµРј 5 РїРѕСЃР»РµРґРЅРёС…)
+    # Удаляем старые бэкапы (оставляем 5 последних)
     ls -dt "\$BACKUP_DIR"/backup_* 2>/dev/null | tail -n +6 | xargs -r rm -rf
 }
 
 do_health() {
     check_install_dir
-    echo -e "\${CYAN}в•”в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•—\${NC}"
-    echo -e "\${CYAN}в•‘           рџЏҐ Р”РРђР“РќРћРЎРўРРљРђ РЎРРЎРўР•РњР« рџЏҐ                          в•‘\${NC}"
-    echo -e "\${CYAN}в•љв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ќ\${NC}"
+    echo -e "\${CYAN}╔══════════════════════════════════════════════════════════════╗\${NC}"
+    echo -e "\${CYAN}║           🏥 ДИАГНОСТИКА СИСТЕМЫ 🏥                          ║\${NC}"
+    echo -e "\${CYAN}╚══════════════════════════════════════════════════════════════╝\${NC}"
     echo
     
-    echo -e "\${WHITE}рџђі РљРѕРЅС‚РµР№РЅРµСЂС‹:\${NC}"
+    echo -e "\${WHITE}🐳 Контейнеры:\${NC}"
     docker compose -f "\$COMPOSE_FILE" ps
     echo
     
-    echo -e "\${WHITE}рџ“Љ РЎРµСЂРІРёСЃС‹:\${NC}"
-    docker ps --format '{{.Names}}' | grep -q "remnawave_bot" && echo -e "  \${GREEN}вњ… Bot: СЂР°Р±РѕС‚Р°РµС‚\${NC}" || echo -e "  \${RED}вќЊ Bot: РЅРµ Р·Р°РїСѓС‰РµРЅ\${NC}"
-    docker compose -f "\$COMPOSE_FILE" exec -T postgres pg_isready -U remnawave_user >/dev/null 2>&1 && echo -e "  \${GREEN}вњ… PostgreSQL: СЂР°Р±РѕС‚Р°РµС‚\${NC}" || echo -e "  \${RED}вќЊ PostgreSQL: РЅРµ РѕС‚РІРµС‡Р°РµС‚\${NC}"
-    docker compose -f "\$COMPOSE_FILE" exec -T redis redis-cli ping >/dev/null 2>&1 && echo -e "  \${GREEN}вњ… Redis: СЂР°Р±РѕС‚Р°РµС‚\${NC}" || echo -e "  \${RED}вќЊ Redis: РЅРµ РѕС‚РІРµС‡Р°РµС‚\${NC}"
+    echo -e "\${WHITE}📊 Сервисы:\${NC}"
+    docker ps --format '{{.Names}}' | grep -q "remnawave_bot" && echo -e "  \${GREEN}✅ Bot: работает\${NC}" || echo -e "  \${RED}❌ Bot: не запущен\${NC}"
+    docker compose -f "\$COMPOSE_FILE" exec -T postgres pg_isready -U remnawave_user >/dev/null 2>&1 && echo -e "  \${GREEN}✅ PostgreSQL: работает\${NC}" || echo -e "  \${RED}❌ PostgreSQL: не отвечает\${NC}"
+    docker compose -f "\$COMPOSE_FILE" exec -T redis redis-cli ping >/dev/null 2>&1 && echo -e "  \${GREEN}✅ Redis: работает\${NC}" || echo -e "  \${RED}❌ Redis: не отвечает\${NC}"
     
     echo
-    echo -e "\${WHITE}рџ“‹ РџРѕСЃР»РµРґРЅРёРµ Р»РѕРіРё:\${NC}"
+    echo -e "\${WHITE}📋 Последние логи:\${NC}"
     docker compose -f "\$COMPOSE_FILE" logs --tail=10 bot 2>/dev/null
 }
 
 do_config() {
     check_install_dir
     \${EDITOR:-nano} "\$INSTALL_DIR/.env"
-    echo -e "\${YELLOW}РџРµСЂРµР·Р°РїСѓСЃС‚РёС‚Рµ Р±РѕС‚Р° РґР»СЏ РїСЂРёРјРµРЅРµРЅРёСЏ: bot restart\${NC}"
+    echo -e "\${YELLOW}Перезапустите бота для применения: bot restart\${NC}"
 }
 
 do_install() {
     local INSTALLER_DIR="\$INSTALL_DIR/.installer"
     
-    echo -e "\${PURPLE}в•”в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•—\${NC}"
-    echo -e "\${PURPLE}в•‘           рџ”§ РЈРЎРўРђРќРћР’Р©РРљ Р‘РћРўРђ рџ”§                              в•‘\${NC}"
-    echo -e "\${PURPLE}в•љв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ќ\${NC}"
+    echo -e "\${PURPLE}╔══════════════════════════════════════════════════════════════╗\${NC}"
+    echo -e "\${PURPLE}║           🔧 УСТАНОВЩИК БОТА 🔧                              ║\${NC}"
+    echo -e "\${PURPLE}╚══════════════════════════════════════════════════════════════╝\${NC}"
     echo
     
     if [ -d "\$INSTALLER_DIR" ] && [ -f "\$INSTALLER_DIR/install.sh" ]; then
         local VERSION=\$(cat "\$INSTALLER_DIR/VERSION" 2>/dev/null || echo "?")
-        echo -e "\${GREEN}вњ… РќР°Р№РґРµРЅС‹ Р»РѕРєР°Р»СЊРЅС‹Рµ СЃРєСЂРёРїС‚С‹ СѓСЃС‚Р°РЅРѕРІС‰РёРєР° (v\$VERSION)\${NC}"
+        echo -e "\${GREEN}✅ Найдены локальные скрипты установщика (v\$VERSION)\${NC}"
         echo
-        echo -e "\${WHITE}Р’Р°СЂРёР°РЅС‚С‹:\${NC}"
-        echo -e "  \${CYAN}1)\${NC} Р—Р°РїСѓСЃС‚РёС‚СЊ СѓСЃС‚Р°РЅРѕРІС‰РёРє"
-        echo -e "  \${CYAN}2)\${NC} РћР±РЅРѕРІРёС‚СЊ СЃРєСЂРёРїС‚С‹ СѓСЃС‚Р°РЅРѕРІС‰РёРєР°"
-        echo -e "  \${CYAN}3)\${NC} РЎРєР°С‡Р°С‚СЊ Рё Р·Р°РїСѓСЃС‚РёС‚СЊ СЃ GitHub"
-        echo -e "  \${CYAN}0)\${NC} РћС‚РјРµРЅР°"
+        echo -e "\${WHITE}Варианты:\${NC}"
+        echo -e "  \${CYAN}1)\${NC} Запустить установщик"
+        echo -e "  \${CYAN}2)\${NC} Обновить скрипты установщика"
+        echo -e "  \${CYAN}3)\${NC} Скачать и запустить с GitHub"
+        echo -e "  \${CYAN}0)\${NC} Отмена"
         echo
-        read -p "Р’Р°С€ РІС‹Р±РѕСЂ [1]: " choice
+        read -p "Ваш выбор [1]: " choice
         choice=\${choice:-1}
         
         case \$choice in
             1)
-                echo -e "\${CYAN}рџљЂ Р—Р°РїСѓСЃРє СѓСЃС‚Р°РЅРѕРІС‰РёРєР°...\${NC}"
+                echo -e "\${CYAN}🚀 Запуск установщика...\${NC}"
                 sudo bash "\$INSTALLER_DIR/install.sh"
                 ;;
             2)
-                echo -e "\${CYAN}рџ“Ґ РћР±РЅРѕРІР»РµРЅРёРµ СЃРєСЂРёРїС‚РѕРІ...\${NC}"
+                echo -e "\${CYAN}📥 Обновление скриптов...\${NC}"
                 local TEMP_DIR=\$(mktemp -d)
                 git clone --depth 1 --single-branch --branch spiderman https://github.com/RamaPulya/bot_auto_install.git "\$TEMP_DIR" 2>/dev/null
                 if [ -d "\$TEMP_DIR/scripts" ]; then
@@ -451,12 +451,12 @@ do_install() {
                     chmod +x "\$INSTALLER_DIR"/*.sh 2>/dev/null
                     chmod +x "\$INSTALLER_DIR"/lib/*.sh 2>/dev/null
                     local NEW_VER=\$(cat "\$INSTALLER_DIR/VERSION" 2>/dev/null || echo "?")
-                    echo -e "\${GREEN}вњ… РћР±РЅРѕРІР»РµРЅРѕ РґРѕ v\$NEW_VER\${NC}"
+                    echo -e "\${GREEN}✅ Обновлено до v\$NEW_VER\${NC}"
                 fi
                 rm -rf "\$TEMP_DIR"
                 ;;
             3)
-                echo -e "\${CYAN}рџ“Ґ РЎРєР°С‡РёРІР°РЅРёРµ СЃ GitHub...\${NC}"
+                echo -e "\${CYAN}📥 Скачивание с GitHub...\${NC}"
                 curl -fsSL https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderman/scripts/quick-install.sh | sudo bash
                 ;;
             0)
@@ -464,14 +464,14 @@ do_install() {
                 ;;
         esac
     else
-        echo -e "\${YELLOW}вљ пёЏ  Р›РѕРєР°Р»СЊРЅС‹Рµ СЃРєСЂРёРїС‚С‹ РЅРµ РЅР°Р№РґРµРЅС‹\${NC}"
+        echo -e "\${YELLOW}⚠️  Локальные скрипты не найдены\${NC}"
         echo
-        echo -e "\${WHITE}Р’Р°СЂРёР°РЅС‚С‹:\${NC}"
-        echo -e "  \${CYAN}1)\${NC} РЎРєР°С‡Р°С‚СЊ Рё Р·Р°РїСѓСЃС‚РёС‚СЊ СЃ GitHub"
-        echo -e "  \${CYAN}2)\${NC} РЎРєР°С‡Р°С‚СЊ СЃРєСЂРёРїС‚С‹ Р»РѕРєР°Р»СЊРЅРѕ"
-        echo -e "  \${CYAN}0)\${NC} РћС‚РјРµРЅР°"
+        echo -e "\${WHITE}Варианты:\${NC}"
+        echo -e "  \${CYAN}1)\${NC} Скачать и запустить с GitHub"
+        echo -e "  \${CYAN}2)\${NC} Скачать скрипты локально"
+        echo -e "  \${CYAN}0)\${NC} Отмена"
         echo
-        read -p "Р’Р°С€ РІС‹Р±РѕСЂ [1]: " choice
+        read -p "Ваш выбор [1]: " choice
         choice=\${choice:-1}
         
         case \$choice in
@@ -486,7 +486,7 @@ do_install() {
                     cp -r "\$TEMP_DIR/scripts"/* "\$INSTALLER_DIR/"
                     chmod +x "\$INSTALLER_DIR"/*.sh 2>/dev/null
                     chmod +x "\$INSTALLER_DIR"/lib/*.sh 2>/dev/null
-                    echo -e "\${GREEN}вњ… РЎРєСЂРёРїС‚С‹ СЃРѕС…СЂР°РЅРµРЅС‹ РІ \$INSTALLER_DIR\${NC}"
+                    echo -e "\${GREEN}✅ Скрипты сохранены в \$INSTALLER_DIR\${NC}"
                 fi
                 rm -rf "\$TEMP_DIR"
                 ;;
@@ -500,119 +500,119 @@ do_install() {
 do_uninstall() {
     check_install_dir
     echo
-    echo -e "\${RED}в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ\${NC}"
-    echo -e "\${WHITE}рџ—‘пёЏ  РЈР”РђР›Р•РќРР• Р‘РћРўРђ\${NC}"
-    echo -e "\${RED}в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ\${NC}"
+    echo -e "\${RED}═══════════════════════════════════════════════════════════════\${NC}"
+    echo -e "\${WHITE}🗑️  УДАЛЕНИЕ БОТА\${NC}"
+    echo -e "\${RED}═══════════════════════════════════════════════════════════════\${NC}"
     echo
-    echo -e "\${YELLOW}вљ пёЏ  Р’РќРРњРђРќРР•! Р­С‚Рѕ РґРµР№СЃС‚РІРёРµ СѓРґР°Р»РёС‚:\${NC}"
-    echo -e "   - Docker РєРѕРЅС‚РµР№РЅРµСЂС‹ Р±РѕС‚Р°"
-    echo -e "   - Р”Р°РЅРЅС‹Рµ PostgreSQL Рё Redis (РѕРїС†РёРѕРЅР°Р»СЊРЅРѕ)"
+    echo -e "\${YELLOW}⚠️  ВНИМАНИЕ! Это действие удалит:\${NC}"
+    echo -e "   - Docker контейнеры бота"
+    echo -e "   - Данные PostgreSQL и Redis (опционально)"
     echo
     
-    read -p "Р’РІРµРґРёС‚Рµ 'yes' РґР»СЏ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ: " CONFIRM
+    read -p "Введите 'yes' для подтверждения: " CONFIRM
     if [ "\$CONFIRM" != "yes" ]; then
-        echo -e "\${GREEN}РЈРґР°Р»РµРЅРёРµ РѕС‚РјРµРЅРµРЅРѕ\${NC}"
+        echo -e "\${GREEN}Удаление отменено\${NC}"
         return
     fi
     
-    echo -e "\${CYAN}рџ›‘ РћСЃС‚Р°РЅРѕРІРєР° РєРѕРЅС‚РµР№РЅРµСЂРѕРІ...\${NC}"
+    echo -e "\${CYAN}🛑 Остановка контейнеров...\${NC}"
     docker compose -f "\$COMPOSE_FILE" down
     
-    read -p "РЈРґР°Р»РёС‚СЊ РґР°РЅРЅС‹Рµ (volumes)? (y/n): " -n 1 -r
+    read -p "Удалить данные (volumes)? (y/n): " -n 1 -r
     echo
     if [[ \$REPLY =~ ^[Yy]\$ ]]; then
-        echo -e "\${CYAN}рџ’ѕ РЈРґР°Р»РµРЅРёРµ volumes...\${NC}"
+        echo -e "\${CYAN}💾 Удаление volumes...\${NC}"
         docker compose -f "\$COMPOSE_FILE" down -v
         docker volume ls -q | grep -E "bedolaga|remnawave.*bot" | xargs -r docker volume rm 2>/dev/null
-        echo -e "\${GREEN}вњ… Volumes СѓРґР°Р»РµРЅС‹\${NC}"
+        echo -e "\${GREEN}✅ Volumes удалены\${NC}"
     fi
     
     if [ -f "/usr/local/bin/bot" ]; then
         rm -f /usr/local/bin/bot
-        echo -e "\${GREEN}вњ… РљРѕРјР°РЅРґР° 'bot' СѓРґР°Р»РµРЅР°\${NC}"
+        echo -e "\${GREEN}✅ Команда 'bot' удалена\${NC}"
     fi
     
     echo
-    echo -e "\${GREEN}вњ… РЈРґР°Р»РµРЅРёРµ Р·Р°РІРµСЂС€РµРЅРѕ\${NC}"
-    echo -e "\${YELLOW}Р”РёСЂРµРєС‚РѕСЂРёСЏ \$INSTALL_DIR РѕСЃС‚Р°РІР»РµРЅР°. РЈРґР°Р»РёС‚Рµ РІСЂСѓС‡РЅСѓСЋ:\${NC}"
+    echo -e "\${GREEN}✅ Удаление завершено\${NC}"
+    echo -e "\${YELLOW}Директория \$INSTALL_DIR оставлена. Удалите вручную:\${NC}"
     echo -e "\${CYAN}rm -rf \$INSTALL_DIR\${NC}"
 }
 
 show_menu() {
     clear
-    echo -e "\${PURPLE}в•”в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•—\${NC}"
-    echo -e "\${PURPLE}в•‘        рџ¤– REMNAWAVE BEDOLAGA BOT вЂ” РЈРџР РђР’Р›Р•РќРР• рџ¤–             в•‘\${NC}"
-    echo -e "\${PURPLE}в•љв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ќ\${NC}"
+    echo -e "\${PURPLE}╔══════════════════════════════════════════════════════════════╗\${NC}"
+    echo -e "\${PURPLE}║        🤖 REMNAWAVE BEDOLAGA BOT — УПРАВЛЕНИЕ 🤖             ║\${NC}"
+    echo -e "\${PURPLE}╚══════════════════════════════════════════════════════════════╝\${NC}"
     echo
-    echo -e "\${WHITE}Р”РёСЂРµРєС‚РѕСЂРёСЏ:\${NC} \${CYAN}\$INSTALL_DIR\${NC}"
+    echo -e "\${WHITE}Директория:\${NC} \${CYAN}\$INSTALL_DIR\${NC}"
     echo
     
     if docker ps --format '{{.Names}}' | grep -q "remnawave_bot"; then
-        echo -e "\${WHITE}РЎС‚Р°С‚СѓСЃ:\${NC} \${GREEN}в—Џ Р‘РѕС‚ СЂР°Р±РѕС‚Р°РµС‚\${NC}"
+        echo -e "\${WHITE}Статус:\${NC} \${GREEN}● Бот работает\${NC}"
     else
-        echo -e "\${WHITE}РЎС‚Р°С‚СѓСЃ:\${NC} \${RED}в—‹ Р‘РѕС‚ РѕСЃС‚Р°РЅРѕРІР»РµРЅ\${NC}"
+        echo -e "\${WHITE}Статус:\${NC} \${RED}○ Бот остановлен\${NC}"
     fi
     echo
     
-    echo -e "\${WHITE}в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ\${NC}"
+    echo -e "\${WHITE}═══════════════════════════════════════════════════════════════\${NC}"
     echo
-    echo -e "  \${CYAN}1)\${NC} рџ“‹ Р›РѕРіРё              \${CYAN}6)\${NC} рџ’ѕ РЎРѕР·РґР°С‚СЊ Р±СЌРєР°Рї"
-    echo -e "  \${CYAN}2)\${NC} рџ“Љ РЎС‚Р°С‚СѓСЃ            \${CYAN}7)\${NC} рџЏҐ Р”РёР°РіРЅРѕСЃС‚РёРєР°"
-    echo -e "  \${CYAN}3)\${NC} рџ”„ РџРµСЂРµР·Р°РїСѓСЃРє        \${CYAN}8)\${NC} вљ™пёЏ  Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ .env"
-    echo -e "  \${CYAN}4)\${NC} в–¶пёЏ  Р—Р°РїСѓСЃРє            \${CYAN}9)\${NC} рџ“¦ РћР±РЅРѕРІРёС‚СЊ Р±РѕС‚Р°"
-    echo -e "  \${CYAN}5)\${NC} вЏ№пёЏ  РћСЃС‚Р°РЅРѕРІРєР°         \${CYAN}10)\${NC} рџ› пёЏ РћР±РЅРѕРІРёС‚СЊ СЃРєСЂРёРїС‚"
-    echo -e "  \${CYAN}i)\${NC} рџ”§ РЈСЃС‚Р°РЅРѕРІС‰РёРє        \${CYAN}L)\${NC} рџ—‘пёЏ  РЈРґР°Р»РµРЅРёРµ"
+    echo -e "  \${CYAN}1)\${NC} 📋 Логи              \${CYAN}6)\${NC} 💾 Создать бэкап"
+    echo -e "  \${CYAN}2)\${NC} 📊 Статус            \${CYAN}7)\${NC} 🏥 Диагностика"
+    echo -e "  \${CYAN}3)\${NC} 🔄 Перезапуск        \${CYAN}8)\${NC} ⚙️  Редактировать .env"
+    echo -e "  \${CYAN}4)\${NC} ▶️  Запуск            \${CYAN}9)\${NC} 📦 Обновить бота"
+    echo -e "  \${CYAN}5)\${NC} ⏹️  Остановка         \${CYAN}10)\${NC} 🛠️ Обновить скрипт"
+    echo -e "  \${CYAN}i)\${NC} 🔧 Установщик        \${CYAN}L)\${NC} 🗑️  Удаление"
     echo
-    echo -e "  \${CYAN}q)\${NC} Р’С‹С…РѕРґ"
+    echo -e "  \${CYAN}q)\${NC} Выход"
     echo
 }
 
 interactive_menu() {
     while true; do
         show_menu
-        read -p "Р’Р°С€ РІС‹Р±РѕСЂ: " choice
+        read -p "Ваш выбор: " choice
         
         case \$choice in
             1) do_logs ;;
-            2) do_status; read -p "РќР°Р¶РјРёС‚Рµ Enter..." ;;
-            3) do_restart; read -p "РќР°Р¶РјРёС‚Рµ Enter..." ;;
-            4) do_start; read -p "РќР°Р¶РјРёС‚Рµ Enter..." ;;
-            5) do_stop; read -p "РќР°Р¶РјРёС‚Рµ Enter..." ;;
-            6) do_backup; read -p "РќР°Р¶РјРёС‚Рµ Enter..." ;;
-            7) do_health; read -p "РќР°Р¶РјРёС‚Рµ Enter..." ;;
+            2) do_status; read -p "Нажмите Enter..." ;;
+            3) do_restart; read -p "Нажмите Enter..." ;;
+            4) do_start; read -p "Нажмите Enter..." ;;
+            5) do_stop; read -p "Нажмите Enter..." ;;
+            6) do_backup; read -p "Нажмите Enter..." ;;
+            7) do_health; read -p "Нажмите Enter..." ;;
             8) do_config ;;
             9) update_menu ;;
-            10) update_installer; read -p "РќР°Р¶РјРёС‚Рµ Enter..." ;;
-            i|I) do_install; read -p "РќР°Р¶РјРёС‚Рµ Enter..." ;;
+            10) update_installer; read -p "Нажмите Enter..." ;;
+            i|I) do_install; read -p "Нажмите Enter..." ;;
             l|L) do_uninstall; break ;;
-            q|Q|exit) echo -e "\${GREEN}Р”Рѕ СЃРІРёРґР°РЅРёСЏ!\${NC}"; exit 0 ;;
-            *) echo -e "\${RED}РќРµРІРµСЂРЅС‹Р№ РІС‹Р±РѕСЂ\${NC}"; sleep 1 ;;
+            q|Q|exit) echo -e "\${GREEN}До свидания!\${NC}"; exit 0 ;;
+            *) echo -e "\${RED}Неверный выбор\${NC}"; sleep 1 ;;
         esac
     done
 }
 
 show_help() {
-    echo -e "\${PURPLE}в•”в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•—\${NC}"
-    echo -e "\${PURPLE}в•‘        рџ¤– REMNAWAVE BEDOLAGA BOT вЂ” РЎРџР РђР’РљРђ рџ¤–                в•‘\${NC}"
-    echo -e "\${PURPLE}в•љв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ќ\${NC}"
+    echo -e "\${PURPLE}╔══════════════════════════════════════════════════════════════╗\${NC}"
+    echo -e "\${PURPLE}║        🤖 REMNAWAVE BEDOLAGA BOT — СПРАВКА 🤖                ║\${NC}"
+    echo -e "\${PURPLE}╚══════════════════════════════════════════════════════════════╝\${NC}"
     echo
-    echo -e "\${WHITE}РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ:\${NC}"
-    echo -e "  \${CYAN}bot\${NC}              вЂ” РРЅС‚РµСЂР°РєС‚РёРІРЅРѕРµ РјРµРЅСЋ"
-    echo -e "  \${CYAN}bot <РєРѕРјР°РЅРґР°>\${NC}   вЂ” Р’С‹РїРѕР»РЅРёС‚СЊ РєРѕРјР°РЅРґСѓ"
+    echo -e "\${WHITE}Использование:\${NC}"
+    echo -e "  \${CYAN}bot\${NC}              — Интерактивное меню"
+    echo -e "  \${CYAN}bot <команда>\${NC}   — Выполнить команду"
     echo
-    echo -e "\${WHITE}РљРѕРјР°РЅРґС‹:\${NC}"
-    echo -e "  \${GREEN}logs\${NC}       вЂ” РџСЂРѕСЃРјРѕС‚СЂ Р»РѕРіРѕРІ"
-    echo -e "  \${GREEN}status\${NC}     вЂ” РЎС‚Р°С‚СѓСЃ РєРѕРЅС‚РµР№РЅРµСЂРѕРІ"
-    echo -e "  \${GREEN}restart\${NC}    вЂ” РџРµСЂРµР·Р°РїСѓСЃРє"
-    echo -e "  \${GREEN}start\${NC}      вЂ” Р—Р°РїСѓСЃРє"
-    echo -e "  \${GREEN}stop\${NC}       вЂ” РћСЃС‚Р°РЅРѕРІРєР°"
-    echo -e "  \${GREEN}update\${NC}     вЂ” РћР±РЅРѕРІР»РµРЅРёРµ Р±РѕС‚Р°"
-    echo -e "  \${GREEN}backup\${NC}     вЂ” Р РµР·РµСЂРІРЅР°СЏ РєРѕРїРёСЏ"
-    echo -e "  \${GREEN}health\${NC}     вЂ” Р”РёР°РіРЅРѕСЃС‚РёРєР°"
-    echo -e "  \${GREEN}config\${NC}     вЂ” Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ .env"
-    echo -e "  \${GREEN}install\${NC}    вЂ” Р—Р°РїСѓСЃС‚РёС‚СЊ СѓСЃС‚Р°РЅРѕРІС‰РёРє"
-    echo -e "  \${GREEN}installer\${NC}  вЂ” РћР±РЅРѕРІРёС‚СЊ СЃРєСЂРёРїС‚С‹ СѓСЃС‚Р°РЅРѕРІС‰РёРєР°"
-    echo -e "  \${GREEN}uninstall\${NC}  вЂ” РЈРґР°Р»РµРЅРёРµ Р±РѕС‚Р°"
+    echo -e "\${WHITE}Команды:\${NC}"
+    echo -e "  \${GREEN}logs\${NC}       — Просмотр логов"
+    echo -e "  \${GREEN}status\${NC}     — Статус контейнеров"
+    echo -e "  \${GREEN}restart\${NC}    — Перезапуск"
+    echo -e "  \${GREEN}start\${NC}      — Запуск"
+    echo -e "  \${GREEN}stop\${NC}       — Остановка"
+    echo -e "  \${GREEN}update\${NC}     — Обновление бота"
+    echo -e "  \${GREEN}backup\${NC}     — Резервная копия"
+    echo -e "  \${GREEN}health\${NC}     — Диагностика"
+    echo -e "  \${GREEN}config\${NC}     — Редактировать .env"
+    echo -e "  \${GREEN}install\${NC}    — Запустить установщик"
+    echo -e "  \${GREEN}installer\${NC}  — Обновить скрипты установщика"
+    echo -e "  \${GREEN}uninstall\${NC}  — Удаление бота"
 }
 
 case "\$1" in
@@ -631,8 +631,8 @@ case "\$1" in
     help|--help|-h) show_help ;;
     "")         interactive_menu ;;
     *)
-        echo -e "\${RED}вќЊ РќРµРёР·РІРµСЃС‚РЅР°СЏ РєРѕРјР°РЅРґР°: \$1\${NC}"
-        echo "РСЃРїРѕР»СЊР·СѓР№С‚Рµ: bot help"
+        echo -e "\${RED}❌ Неизвестная команда: \$1\${NC}"
+        echo "Используйте: bot help"
         exit 1
         ;;
 esac
@@ -640,23 +640,23 @@ BOTEOF
 
     chmod +x /usr/local/bin/bot
     
-    echo -e "${GREEN}вњ… РљРѕРјР°РЅРґР° 'bot' СѓСЃС‚Р°РЅРѕРІР»РµРЅР°!${NC}"
+    echo -e "${GREEN}✅ Команда 'bot' установлена!${NC}"
     echo
-    echo -e "${WHITE}РўРµРїРµСЂСЊ РґРѕСЃС‚СѓРїРЅРѕ:${NC}"
-    echo -e "  ${CYAN}bot${NC}        вЂ” РёРЅС‚РµСЂР°РєС‚РёРІРЅРѕРµ РјРµРЅСЋ"
-    echo -e "  ${CYAN}bot help${NC}   вЂ” СЃРїСЂР°РІРєР°"
+    echo -e "${WHITE}Теперь доступно:${NC}"
+    echo -e "  ${CYAN}bot${NC}        — интерактивное меню"
+    echo -e "  ${CYAN}bot help${NC}   — справка"
 }
 
-# Р¤СѓРЅРєС†РёСЏ РѕР±РЅРѕРІР»РµРЅРёСЏ СЃРєСЂРёРїС‚РѕРІ СѓСЃС‚Р°РЅРѕРІС‰РёРєР°
+# Функция обновления скриптов установщика
 update_installer() {
     echo
-    echo -e "${CYAN}в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ${NC}"
-    echo -e "${WHITE}рџ”§ РћР‘РќРћР’Р›Р•РќРР• РЎРљР РРџРўРћР’ РЈРЎРўРђРќРћР’Р©РРљРђ${NC}"
-    echo -e "${CYAN}в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ${NC}"
+    echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${WHITE}🔧 ОБНОВЛЕНИЕ СКРИПТОВ УСТАНОВЩИКА${NC}"
+    echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
     
     INSTALLER_DIR="$INSTALL_DIR/.installer"
     
-    echo -e "${CYAN}рџ“Ґ РЎРєР°С‡РёРІР°РЅРёРµ СЃРєСЂРёРїС‚РѕРІ СѓСЃС‚Р°РЅРѕРІС‰РёРєР°...${NC}"
+    echo -e "${CYAN}📥 Скачивание скриптов установщика...${NC}"
     
     TEMP_DIR=$(mktemp -d)
     git clone --depth 1 --single-branch --branch spiderman https://github.com/RamaPulya/bot_auto_install.git "$TEMP_DIR" 2>/dev/null
@@ -668,27 +668,27 @@ update_installer() {
         chmod +x "$INSTALLER_DIR"/lib/*.sh 2>/dev/null
         
         VERSION=$(cat "$INSTALLER_DIR/VERSION" 2>/dev/null || echo "?")
-        echo -e "${GREEN}вњ… РЎРєСЂРёРїС‚С‹ СѓСЃС‚Р°РЅРѕРІС‰РёРєР° РѕР±РЅРѕРІР»РµРЅС‹ (v$VERSION)${NC}"
+        echo -e "${GREEN}✅ Скрипты установщика обновлены (v$VERSION)${NC}"
     else
-        echo -e "${RED}вќЊ РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё${NC}"
+        echo -e "${RED}❌ Ошибка загрузки${NC}"
     fi
     
     rm -rf "$TEMP_DIR"
 }
 
-# в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ
-# РћРЎРќРћР’РќРћР™ РљРћР”
-# в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ
+# ═══════════════════════════════════════════════════════════════
+# ОСНОВНОЙ КОД
+# ═══════════════════════════════════════════════════════════════
 
 INSTALL_DIR=$(find_install_dir)
 
 if [ -z "$INSTALL_DIR" ]; then
-    echo -e "${RED}вќЊ Р”РёСЂРµРєС‚РѕСЂРёСЏ Р±РѕС‚Р° РЅРµ РЅР°Р№РґРµРЅР°!${NC}"
-    echo -e "${YELLOW}РџСЂРѕРІРµСЂСЊС‚Рµ /opt/remnawave-bedolaga-telegram-bot${NC}"
+    echo -e "${RED}❌ Директория бота не найдена!${NC}"
+    echo -e "${YELLOW}Проверьте /opt/remnawave-bedolaga-telegram-bot${NC}"
     exit 1
 fi
 
-# РћРїСЂРµРґРµР»СЏРµРј compose С„Р°Р№Р»
+# Определяем compose файл
 COMPOSE_FILE="docker-compose.yml"
 if [ -f "$INSTALL_DIR/docker-compose.local.yml" ]; then
     COMPOSE_FILE="docker-compose.local.yml"
@@ -696,43 +696,43 @@ elif [ -f "$INSTALL_DIR/.install_config" ]; then
     source "$INSTALL_DIR/.install_config" 2>/dev/null
 fi
 
-# РџСЂРѕРІРµСЂСЏРµРј РЅР°Р»РёС‡РёРµ external network РІ compose С„Р°Р№Р»Рµ
+# Проверяем наличие external network в compose файле
 if grep -q "external: true" "$INSTALL_DIR/$COMPOSE_FILE" 2>/dev/null; then
     NETWORK_NAME=$(grep -A1 "external: true" "$INSTALL_DIR/$COMPOSE_FILE" | grep "name:" | awk '{print $2}' || echo "remnawave-network")
     if ! docker network ls --format '{{.Name}}' | grep -q "^${NETWORK_NAME}$"; then
-        echo -e "${YELLOW}вљ пёЏ  РћР±РЅР°СЂСѓР¶РµРЅР° external network: $NETWORK_NAME${NC}"
-        echo -e "${YELLOW}   РЎРµС‚СЊ РЅРµ РЅР°Р№РґРµРЅР°. РЎРѕР·РґР°С‘Рј...${NC}"
+        echo -e "${YELLOW}⚠️  Обнаружена external network: $NETWORK_NAME${NC}"
+        echo -e "${YELLOW}   Сеть не найдена. Создаём...${NC}"
         docker network create "$NETWORK_NAME" 2>/dev/null || true
     fi
 fi
 
 echo -e "${PURPLE}"
-echo "в•”в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•—"
-echo "в•‘     рџ”„ REMNAWAVE BEDOLAGA BOT - РћР‘РќРћР’Р›Р•РќРР• рџ”„               в•‘"
-echo "в•љв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ќ"
+echo "╔══════════════════════════════════════════════════════════════╗"
+echo "║     🔄 REMNAWAVE BEDOLAGA BOT - ОБНОВЛЕНИЕ 🔄               ║"
+echo "╚══════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
-echo -e "${WHITE}рџ“Ѓ Р”РёСЂРµРєС‚РѕСЂРёСЏ:${NC} ${CYAN}$INSTALL_DIR${NC}"
+echo -e "${WHITE}📁 Директория:${NC} ${CYAN}$INSTALL_DIR${NC}"
 echo
 
-# РџСЂРѕРІРµСЂРєР° РЅР°Р»РёС‡РёСЏ РєРѕРјР°РЅРґС‹ bot
+# Проверка наличия команды bot
 if [ -f "/usr/local/bin/bot" ]; then
-    echo -e "${GREEN}вњ… РљРѕРјР°РЅРґР° 'bot' СѓСЃС‚Р°РЅРѕРІР»РµРЅР°${NC}"
+    echo -e "${GREEN}✅ Команда 'bot' установлена${NC}"
 else
-    echo -e "${YELLOW}вљ пёЏ  РљРѕРјР°РЅРґР° 'bot' РЅРµ РЅР°Р№РґРµРЅР°${NC}"
+    echo -e "${YELLOW}⚠️  Команда 'bot' не найдена${NC}"
 fi
 
-# Р“Р»Р°РІРЅРѕРµ РјРµРЅСЋ
+# Главное меню
 echo
-echo -e "${WHITE}Р§С‚Рѕ РІС‹ С…РѕС‚РёС‚Рµ СЃРґРµР»Р°С‚СЊ?${NC}"
+echo -e "${WHITE}Что вы хотите сделать?${NC}"
 echo
-echo -e "  ${CYAN}1)${NC} рџ“¦ РћР±РЅРѕРІРёС‚СЊ Р±РѕС‚Р° (git pull + rebuild)"
-echo -e "  ${CYAN}2)${NC} рџЋ® РЈСЃС‚Р°РЅРѕРІРёС‚СЊ РєРѕРјР°РЅРґСѓ 'bot'"
-echo -e "  ${CYAN}3)${NC} рџ”§ РћР±РЅРѕРІРёС‚СЊ СЃРєСЂРёРїС‚С‹ СѓСЃС‚Р°РЅРѕРІС‰РёРєР°"
-echo -e "  ${CYAN}4)${NC} рџ“‹ Р’СЃС‘ РІРјРµСЃС‚Рµ (СЂРµРєРѕРјРµРЅРґСѓРµС‚СЃСЏ)"
-echo -e "  ${CYAN}0)${NC} РћС‚РјРµРЅР°"
+echo -e "  ${CYAN}1)${NC} 📦 Обновить бота (git pull + rebuild)"
+echo -e "  ${CYAN}2)${NC} 🎮 Установить команду 'bot'"
+echo -e "  ${CYAN}3)${NC} 🔧 Обновить скрипты установщика"
+echo -e "  ${CYAN}4)${NC} 📋 Всё вместе (рекомендуется)"
+echo -e "  ${CYAN}0)${NC} Отмена"
 echo
-read -p "Р’Р°С€ РІС‹Р±РѕСЂ [4]: " CHOICE < /dev/tty
+read -p "Ваш выбор [4]: " CHOICE < /dev/tty
 CHOICE=${CHOICE:-4}
 
 case $CHOICE in
@@ -751,24 +751,23 @@ case $CHOICE in
         update_installer
         ;;
     0)
-        echo -e "${YELLOW}РћС‚РјРµРЅРµРЅРѕ${NC}"
+        echo -e "${YELLOW}Отменено${NC}"
         exit 0
         ;;
     *)
-        echo -e "${RED}РќРµРІРµСЂРЅС‹Р№ РІС‹Р±РѕСЂ${NC}"
+        echo -e "${RED}Неверный выбор${NC}"
         exit 1
         ;;
 esac
 
-# Р¤РёРЅР°Р»СЊРЅРѕРµ СЃРѕРѕР±С‰РµРЅРёРµ
+# Финальное сообщение
 echo
-echo -e "${GREEN}в•”в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•—${NC}"
-echo -e "${GREEN}в•‘     вњ… РћР‘РќРћР’Р›Р•РќРР• Р—РђР’Р•Р РЁР•РќРћ!                                 в•‘${NC}"
-echo -e "${GREEN}в•љв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ќ${NC}"
+echo -e "${GREEN}╔══════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${GREEN}║     ✅ ОБНОВЛЕНИЕ ЗАВЕРШЕНО!                                 ║${NC}"
+echo -e "${GREEN}╚══════════════════════════════════════════════════════════════╝${NC}"
 echo
-echo -e "${WHITE}РСЃРїРѕР»СЊР·СѓР№С‚Рµ РєРѕРјР°РЅРґСѓ ${CYAN}bot${NC} РґР»СЏ СѓРїСЂР°РІР»РµРЅРёСЏ Р±РѕС‚РѕРј${NC}"
+echo -e "${WHITE}Используйте команду ${CYAN}bot${NC} для управления ботом${NC}"
 echo
-
 
 
 

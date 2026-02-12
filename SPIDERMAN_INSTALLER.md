@@ -1,4 +1,4 @@
-﻿# Установщик Bedolaga Bot (ветка spiderman)
+# Установщик Bedolaga Bot (ветка spiderman)
 
 Этот документ описывает актуальную логику установщика в репозитории `RamaPulya/bot_auto_install` (ветка `spiderman`) и отличия от исходной версии.
 
@@ -58,4 +58,3 @@ curl -fsSL https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderma
 - Caddy и панель должны быть в одной Docker-сети (обычно `remnawave-network`).
 - Бот использует `remnawave_bot` как имя сервиса внутри docker сети.
 - Если Caddy не найден или выключен, используется стандартная настройка Nginx.
-
