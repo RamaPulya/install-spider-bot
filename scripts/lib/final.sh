@@ -663,6 +663,40 @@ do_uninstall() {
 # ИНТЕРАКТИВНОЕ МЕНЮ
 # ═══════════════════════════════════════════════════════════════
 
+show_version() {
+    check_install_dir
+
+    local INSTALLER_VERSION="?"
+    if [ -f "$INSTALLER_DIR/VERSION" ]; then
+        INSTALLER_VERSION=$(cat "$INSTALLER_DIR/VERSION" 2>/dev/null || echo "?")
+    fi
+
+    local LOCAL_HASH="?"
+    local LOCAL_DATE="?"
+    local REMOTE_HASH="?"
+    local REMOTE_DATE="?"
+    local BEHIND="?"
+
+    if [ -d ".git" ]; then
+        git fetch origin "$REPO_BRANCH" >/dev/null 2>&1 || true
+        LOCAL_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "?")
+        LOCAL_DATE=$(git log -1 --date=short --format=%ad 2>/dev/null || echo "?")
+        REMOTE_HASH=$(git rev-parse --short "origin/$REPO_BRANCH" 2>/dev/null || echo "?")
+        REMOTE_DATE=$(git log -1 "origin/$REPO_BRANCH" --date=short --format=%ad 2>/dev/null || echo "?")
+        BEHIND=$(git rev-list --count "HEAD..origin/$REPO_BRANCH" 2>/dev/null || echo "0")
+    fi
+
+    echo
+    echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${WHITE}ℹ️ Версии${NC}"
+    echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${WHITE}Installer:${NC} ${CYAN}v$INSTALLER_VERSION${NC}"
+    echo -e "${WHITE}Branch:${NC} ${CYAN}$REPO_BRANCH${NC}"
+    echo -e "${WHITE}Local:${NC} ${CYAN}$LOCAL_HASH${NC} | $LOCAL_DATE"
+    echo -e "${WHITE}Remote:${NC} ${CYAN}$REMOTE_HASH${NC} | $REMOTE_DATE"
+    echo -e "${WHITE}Behind:${NC} ${CYAN}$BEHIND${NC}"
+}
+
 show_menu() {
     clear
     echo -e "${PURPLE}╔══════════════════════════════════════════════════════════════╗${NC}"
@@ -688,6 +722,7 @@ show_menu() {
     echo -e "  ${CYAN}3)${NC} 🔄 Перезапуск        ${CYAN}8)${NC} ⚙️  Настройки"
     echo -e "  ${CYAN}4)${NC} ▶️  Запуск            ${CYAN}9)${NC} 📦 Обновить бота"
     echo -e "  ${CYAN}5)${NC} ⏹️  Остановка         ${CYAN}10)${NC} 🛠️ Обновить скрипт"
+    echo -e "  ${CYAN}11)${NC} ℹ️ Версия"
     echo
     echo -e "  ${CYAN}i)${NC} 🔧 Установщик        ${CYAN}L)${NC} 🗑️  Удаление"
     echo -e "  ${CYAN}q)${NC} Выход"
@@ -710,6 +745,7 @@ interactive_menu() {
             8) do_config ;;
             9) update_menu ;;
             10) update_installer_scripts; read -p "Нажмите Enter..." ;;
+            11) show_version; read -p "Нажмите Enter..." ;;
             i|I|install) do_install; read -p "Нажмите Enter..." ;;
             l|L) do_uninstall; break ;;
             q|Q|exit) echo -e "${GREEN}До свидания!${NC}"; exit 0 ;;
@@ -761,6 +797,7 @@ case "$1" in
     install|reinstall|setup) do_install ;;
     uninstall|remove) do_uninstall ;;
     help|--help|-h) show_help ;;
+    version|ver) show_version ;;
     "")         interactive_menu ;;
     *)
         echo -e "${RED}❌ Неизвестная команда: $1${NC}"
