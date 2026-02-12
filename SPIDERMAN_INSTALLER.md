@@ -1,4 +1,4 @@
-# Установщик Bedolaga Bot (ветка spiderman)
+﻿# Установщик Bedolaga Bot (ветка spiderman)
 
 Этот документ описывает актуальную логику установщика в репозитории `RamaPulya/bot_auto_install` (ветка `spiderman`) и отличия от исходной версии.
 
@@ -11,9 +11,9 @@ curl -fsSL https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderma
 ## Репозитории и ветки
 
 - Инсталлятор: `https://github.com/RamaPulya/bot_auto_install` (ветка `spiderman`)
-- Бот: `https://github.com/RamaPulya/remnawave-bedolaga-telegram-bot` (ветка `spiderman-no-tarriffs`)
+- Бот: `https://github.com/RamaPulya/remnawave-bedolaga-telegram-bot` (ветка `spiderman`)
 
-Скрипт установки всегда тянет именно ветку `spiderman-no-tarriffs` и при обновлении делает `git pull origin spiderman-no-tarriffs`.
+Скрипт установки всегда тянет именно ветку `spiderman` и при обновлении делает `git pull origin spiderman`.
 
 ## Сценарии установки
 
@@ -47,7 +47,7 @@ curl -fsSL https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderma
 
 ## Изменения в ветке spiderman (установщик)
 
-- Подключение к боту переключено на `RamaPulya/remnawave-bedolaga-telegram-bot` и ветку `spiderman-no-tarriffs`.
+- Подключение к боту переключено на `RamaPulya/remnawave-bedolaga-telegram-bot` и ветку `spiderman`.
 - Все ссылки на установщик переведены на `RamaPulya/bot_auto_install`, ветка `spiderman`.
 - Добавлен модуль `scripts/lib/caddy_setup.sh`.
 - Обновления бота (`upgrade.sh`, `final.sh`) делают `git pull` нужной ветки.
@@ -58,3 +58,4 @@ curl -fsSL https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderma
 - Caddy и панель должны быть в одной Docker-сети (обычно `remnawave-network`).
 - Бот использует `remnawave_bot` как имя сервиса внутри docker сети.
 - Если Caddy не найден или выключен, используется стандартная настройка Nginx.
+
