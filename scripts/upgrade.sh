@@ -712,6 +712,7 @@ do_cabinet_caddy_recreate() {
 
 cabinet_menu() {
     while true; do
+        clear
         echo
         echo -e "\${WHITE}Кабинет:\${NC}"
         echo -e "  \${CYAN}1)\${NC} Установить кабинет"
