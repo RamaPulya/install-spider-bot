@@ -13,6 +13,16 @@ PURPLE='\033[0;35m'
 WHITE='\033[1;37m'
 NC='\033[0m'
 REPO_BRANCH="spiderman"
+FORCE_INSTALL_BOT_COMMAND="${FORCE_INSTALL_BOT_COMMAND:-false}"
+
+CABINET_REPO_URL="https://github.com/RamaPulya/bedolaga-cabinet.git"
+CABINET_BRANCH="spiderman"
+CABINET_DIR="/opt/bedolaga-cabinet"
+CABINET_COMPOSE_FILE="docker-compose.yml"
+CABINET_OVERRIDE_FILE="docker-compose.override.yml"
+CABINET_SERVICE_NAME="cabinet-frontend"
+CABINET_NETWORK_NAME="remnawave-network"
+CABINET_CADDY_DIR="/opt/caddy-remnawave"
 
 # ═══════════════════════════════════════════════════════════════
 # ФУНКЦИИ (определяем ДО использования)
@@ -112,7 +122,7 @@ install_bot_command() {
     echo -e "${WHITE}🎮 УСТАНОВКА КОМАНДЫ 'bot'${NC}"
     echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
     
-    if [ -f "/usr/local/bin/bot" ]; then
+    if [ -f "/usr/local/bin/bot" ] && [ "$FORCE_INSTALL_BOT_COMMAND" != "true" ]; then
         echo -e "${YELLOW}Команда 'bot' уже существует. Обновить? (y/n) [y]:${NC}"
         read -n 1 -r REPLY < /dev/tty
         echo
@@ -126,7 +136,13 @@ install_bot_command() {
     echo -e "${CYAN}📝 Создание команды 'bot'...${NC}"
     
     # Создаём скрипт bot
-    cat > /usr/local/bin/bot << BOTEOF
+    if [ "$(id -u)" -ne 0 ] && [ ! -w "/usr/local/bin" ]; then
+        echo -e "${RED}❌ Нет прав на запись в /usr/local/bin${NC}"
+        echo -e "${YELLOW}Запустите обновление от root (sudo) и повторите.${NC}"
+        return 1
+    fi
+
+    if ! cat > /usr/local/bin/bot << BOTEOF
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════
 # 🤖 REMNAWAVE BEDOLAGA BOT - КОМАНДА УПРАВЛЕНИЯ
@@ -136,6 +152,15 @@ INSTALL_DIR="$INSTALL_DIR"
 COMPOSE_FILE="$COMPOSE_FILE"
 INSTALLER_DIR="$INSTALL_DIR/.installer"
 REPO_BRANCH="spiderman"
+
+CABINET_REPO_URL="https://github.com/RamaPulya/bedolaga-cabinet.git"
+CABINET_BRANCH="spiderman"
+CABINET_DIR="/opt/bedolaga-cabinet"
+CABINET_COMPOSE_FILE="docker-compose.yml"
+CABINET_OVERRIDE_FILE="docker-compose.override.yml"
+CABINET_SERVICE_NAME="cabinet-frontend"
+CABINET_NETWORK_NAME="remnawave-network"
+CABINET_CADDY_DIR="/opt/caddy-remnawave"
 
 # Цвета
 RED='\033[0;31m'
@@ -323,8 +348,18 @@ update_installer() {
     git clone --depth 1 --single-branch --branch spiderman https://github.com/RamaPulya/bot_auto_install.git "\$TEMP_DIR" 2>/dev/null
     
     if [ -d "\$TEMP_DIR/scripts" ]; then
-        rm -rf "\$INSTALLER_DIR" 2>/dev/null
-        cp -r "\$TEMP_DIR/scripts" "\$INSTALLER_DIR"
+        if [ ! -d "\$INSTALL_DIR" ] || [ ! -w "\$INSTALL_DIR" ]; then
+            echo -e "\${RED}❌ Нет прав на запись в \$INSTALL_DIR. Запустите bot от root (sudo).\${NC}"
+            rm -rf "\$TEMP_DIR"
+            return 1
+        fi
+
+        rm -rf "\$INSTALLER_DIR" 2>/dev/null || true
+        if ! cp -r "\$TEMP_DIR/scripts" "\$INSTALLER_DIR"; then
+            echo -e "\${RED}❌ Не удалось обновить скрипты установщика (ошибка записи в \$INSTALLER_DIR)\${NC}"
+            rm -rf "\$TEMP_DIR"
+            return 1
+        fi
         chmod +x "\$INSTALLER_DIR"/*.sh 2>/dev/null
         chmod +x "\$INSTALLER_DIR"/lib/*.sh 2>/dev/null
         
@@ -332,15 +367,14 @@ update_installer() {
         echo -e "\${GREEN}✅ Скрипты установщика обновлены (v\$VERSION)\${NC}"
 
         # Автообновление команды bot на новую версию скриптов
-        cat > /usr/local/bin/bot << BOTCMD
-#!/bin/bash
-exec bash "\$INSTALLER_DIR/upgrade.sh" "\$@"
-BOTCMD
-        chmod +x /usr/local/bin/bot
-        if [ -d "/usr/bin" ]; then
-            ln -sfn /usr/local/bin/bot /usr/bin/bot 2>/dev/null || true
+        if [ -x "\$INSTALLER_DIR/upgrade.sh" ]; then
+            if FORCE_INSTALL_BOT_COMMAND=true bash "\$INSTALLER_DIR/upgrade.sh" --install-bot-command --force >/dev/null 2>&1; then
+                echo -e "\${GREEN}✅ Команда bot пересоздана автоматически\${NC}"
+            else
+                echo -e "\${YELLOW}⚠️  Не удалось пересоздать команду bot автоматически\${NC}"
+                echo -e "\${YELLOW}   Выполните: bash \$INSTALLER_DIR/upgrade.sh --install-bot-command --force\${NC}"
+            fi
         fi
-        echo -e "\${GREEN}✅ Команда bot обновлена автоматически\${NC}"
     else
         echo -e "\${RED}❌ Ошибка загрузки\${NC}"
     fi
@@ -439,6 +473,265 @@ do_config() {
     check_install_dir
     \${EDITOR:-nano} "\$INSTALL_DIR/.env"
     echo -e "\${YELLOW}Перезапустите бота для применения: bot restart\${NC}"
+}
+
+ensure_cabinet_network() {
+    if ! docker network ls --format '{{.Name}}' | grep -q "^\$CABINET_NETWORK_NAME\$"; then
+        echo -e "\${YELLOW}Создаём Docker-сеть \$CABINET_NETWORK_NAME...\${NC}"
+        docker network create "\$CABINET_NETWORK_NAME" >/dev/null 2>&1 || true
+    fi
+}
+
+ensure_cabinet_override() {
+    mkdir -p "\$CABINET_DIR"
+    cat > "\$CABINET_DIR/\$CABINET_OVERRIDE_FILE" << 'CABINETOVR'
+services:
+  cabinet-frontend:
+    networks:
+      - remnawave-network
+
+networks:
+  remnawave-network:
+    external: true
+CABINETOVR
+}
+
+sync_cabinet_repo() {
+    echo -e "\${CYAN}📦 Синхронизация репозитория кабинета (\$CABINET_BRANCH)...\${NC}"
+
+    if [ -d "\$CABINET_DIR/.git" ]; then
+        cd "\$CABINET_DIR" || return 1
+        rm -f .git/index.lock .git/shallow.lock .git/FETCH_HEAD.lock .git/HEAD.lock 2>/dev/null || true
+        git remote set-url origin "\$CABINET_REPO_URL" >/dev/null 2>&1 || true
+        if ! git fetch --prune origin; then
+            echo -e "\${RED}❌ Не удалось выполнить git fetch для кабинета\${NC}"
+            return 1
+        fi
+        if ! git show-ref --verify --quiet "refs/remotes/origin/\$CABINET_BRANCH"; then
+            echo -e "\${RED}❌ В origin нет ветки \$CABINET_BRANCH для кабинета\${NC}"
+            return 1
+        fi
+        git checkout -B "\$CABINET_BRANCH" "origin/\$CABINET_BRANCH" 2>/dev/null || git checkout "\$CABINET_BRANCH" 2>/dev/null || true
+        if ! git reset --hard "origin/\$CABINET_BRANCH"; then
+            echo -e "\${RED}❌ Не удалось выполнить git reset --hard origin/\$CABINET_BRANCH\${NC}"
+            return 1
+        fi
+    elif [ -d "\$CABINET_DIR" ] && [ -n "\$(ls -A "\$CABINET_DIR" 2>/dev/null)" ]; then
+        echo -e "\${RED}❌ \$CABINET_DIR существует и не является git-репозиторием.\${NC}"
+        echo -e "\${YELLOW}Очистите директорию вручную и повторите установку.\${NC}"
+        return 1
+    else
+        mkdir -p "\$(dirname "\$CABINET_DIR")"
+        if ! git clone --single-branch --branch "\$CABINET_BRANCH" "\$CABINET_REPO_URL" "\$CABINET_DIR"; then
+            echo -e "\${RED}❌ Не удалось клонировать репозиторий кабинета\${NC}"
+            return 1
+        fi
+    fi
+
+    return 0
+}
+
+resolve_cabinet_container_id() {
+    local container_id=""
+    if [ -f "\$CABINET_DIR/\$CABINET_COMPOSE_FILE" ]; then
+        container_id=\$(docker compose -f "\$CABINET_DIR/\$CABINET_COMPOSE_FILE" -f "\$CABINET_DIR/\$CABINET_OVERRIDE_FILE" ps -q "\$CABINET_SERVICE_NAME" 2>/dev/null | head -n 1)
+    fi
+    if [ -z "\$container_id" ]; then
+        container_id=\$(docker ps -aq --filter "name=^cabinet_frontend\$" | head -n 1)
+    fi
+    echo "\$container_id"
+}
+
+cabinet_connected_to_network() {
+    local container_id="\$1"
+    if [ -z "\$container_id" ]; then
+        return 1
+    fi
+
+    local net_list=""
+    net_list=\$(docker inspect "\$container_id" --format '{{range \$k, \$v := .NetworkSettings.Networks}}{{printf "%s " \$k}}{{end}}' 2>/dev/null)
+    echo "\$net_list" | grep -qw "\$CABINET_NETWORK_NAME"
+}
+
+deploy_cabinet_frontend() {
+    if [ ! -f "\$CABINET_DIR/\$CABINET_COMPOSE_FILE" ]; then
+        echo -e "\${RED}❌ Не найден \$CABINET_DIR/\$CABINET_COMPOSE_FILE\${NC}"
+        return 1
+    fi
+
+    ensure_cabinet_network
+    ensure_cabinet_override
+
+    echo -e "\${CYAN}🐳 Запуск cabinet-frontend...\${NC}"
+    if ! docker compose -f "\$CABINET_DIR/\$CABINET_COMPOSE_FILE" -f "\$CABINET_DIR/\$CABINET_OVERRIDE_FILE" up -d --build --force-recreate "\$CABINET_SERVICE_NAME"; then
+        echo -e "\${RED}❌ Не удалось запустить cabinet-frontend\${NC}"
+        return 1
+    fi
+
+    sleep 2
+    local container_id=""
+    container_id=\$(resolve_cabinet_container_id)
+    if cabinet_connected_to_network "\$container_id"; then
+        echo -e "\${GREEN}✅ cabinet_frontend подключён к \$CABINET_NETWORK_NAME\${NC}"
+        return 0
+    fi
+
+    echo -e "\${RED}❌ cabinet_frontend не подключён к \$CABINET_NETWORK_NAME\${NC}"
+    return 1
+}
+
+do_cabinet_install() {
+    echo
+    echo -e "\${CYAN}╔═══════════════════════════════════════════════════════════════════════════════╗\${NC}"
+    echo -e "\${WHITE}👤 УСТАНОВКА КАБИНЕТА\${NC}"
+    echo -e "\${CYAN}╚═══════════════════════════════════════════════════════════════════════════════╝\${NC}"
+
+    if ! sync_cabinet_repo; then
+        return 1
+    fi
+    if ! deploy_cabinet_frontend; then
+        return 1
+    fi
+    do_cabinet_status
+}
+
+do_cabinet_update() {
+    echo
+    echo -e "\${CYAN}╔═══════════════════════════════════════════════════════════════════════════════╗\${NC}"
+    echo -e "\${WHITE}🔄 ОБНОВЛЕНИЕ КАБИНЕТА\${NC}"
+    echo -e "\${CYAN}╚═══════════════════════════════════════════════════════════════════════════════╝\${NC}"
+
+    if ! sync_cabinet_repo; then
+        return 1
+    fi
+    if ! deploy_cabinet_frontend; then
+        return 1
+    fi
+    do_cabinet_status
+}
+
+do_cabinet_status() {
+    echo
+    echo -e "\${CYAN}╔═══════════════════════════════════════════════════════════════════════════════╗\${NC}"
+    echo -e "\${WHITE}📊 СТАТУС КАБИНЕТА\${NC}"
+    echo -e "\${CYAN}╚═══════════════════════════════════════════════════════════════════════════════╝\${NC}"
+
+    if [ -d "\$CABINET_DIR/.git" ]; then
+        local branch=""
+        local local_hash=""
+        local local_date=""
+        local dirty="clean"
+        branch=\$(git -C "\$CABINET_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "?")
+        local_hash=\$(git -C "\$CABINET_DIR" rev-parse --short HEAD 2>/dev/null || echo "?")
+        local_date=\$(git -C "\$CABINET_DIR" log -1 --date=short --format=%ad 2>/dev/null || echo "?")
+        [ -n "\$(git -C "\$CABINET_DIR" status --porcelain 2>/dev/null)" ] && dirty="dirty"
+
+        git -C "\$CABINET_DIR" fetch --prune origin >/dev/null 2>&1 || true
+        local remote_hash=""
+        local behind="0"
+        remote_hash=\$(git -C "\$CABINET_DIR" rev-parse --short "origin/\$CABINET_BRANCH" 2>/dev/null || echo "?")
+        behind=\$(git -C "\$CABINET_DIR" rev-list --count "HEAD..origin/\$CABINET_BRANCH" 2>/dev/null || echo "0")
+
+        echo -e "\${WHITE}Repo:\${NC} \${CYAN}\$CABINET_DIR\${NC}"
+        echo -e "\${WHITE}Branch:\${NC} \${CYAN}\$branch\${NC}"
+        echo -e "\${WHITE}Local:\${NC} \${CYAN}\$local_hash\${NC} | \$local_date"
+        echo -e "\${WHITE}Remote:\${NC} \${CYAN}\$remote_hash\${NC}"
+        echo -e "\${WHITE}Behind:\${NC} \${CYAN}\$behind\${NC}"
+        echo -e "\${WHITE}Git status:\${NC} \${CYAN}\$dirty\${NC}"
+    else
+        echo -e "\${YELLOW}Кабинет не установлен: \$CABINET_DIR\${NC}"
+    fi
+
+    echo
+    if docker network ls --format '{{.Name}}' | grep -q "^\$CABINET_NETWORK_NAME\$"; then
+        echo -e "\${WHITE}Docker network:\${NC} \${GREEN}\$CABINET_NETWORK_NAME (exists)\${NC}"
+    else
+        echo -e "\${WHITE}Docker network:\${NC} \${RED}\$CABINET_NETWORK_NAME (missing)\${NC}"
+    fi
+
+    if [ -f "\$CABINET_DIR/\$CABINET_COMPOSE_FILE" ]; then
+        docker compose -f "\$CABINET_DIR/\$CABINET_COMPOSE_FILE" -f "\$CABINET_DIR/\$CABINET_OVERRIDE_FILE" ps "\$CABINET_SERVICE_NAME" 2>/dev/null || true
+    fi
+
+    local container_id=""
+    container_id=\$(resolve_cabinet_container_id)
+    if cabinet_connected_to_network "\$container_id"; then
+        echo -e "\${WHITE}Network attach:\${NC} \${GREEN}cabinet_frontend -> \$CABINET_NETWORK_NAME\${NC}"
+    else
+        echo -e "\${WHITE}Network attach:\${NC} \${RED}cabinet_frontend is not attached to \$CABINET_NETWORK_NAME\${NC}"
+    fi
+}
+
+do_cabinet_caddy_check() {
+    echo
+    echo -e "\${CYAN}🔎 Проверка Caddy для кабинета...\${NC}"
+
+    if [ ! -d "\$CABINET_CADDY_DIR" ]; then
+        echo -e "\${YELLOW}Директория Caddy не найдена: \$CABINET_CADDY_DIR\${NC}"
+        return 0
+    fi
+
+    local caddy_env="\$CABINET_CADDY_DIR/.env"
+    local caddy_file="\$CABINET_CADDY_DIR/Caddyfile"
+
+    if [ -f "\$caddy_env" ]; then
+        local cabinet_domain=""
+        cabinet_domain=\$(grep -E '^CABINET_DOMAIN=' "\$caddy_env" 2>/dev/null | tail -n 1 | cut -d'=' -f2- | tr -d '"' | tr -d "'" | tr -d ' ')
+        if [ -n "\$cabinet_domain" ]; then
+            echo -e "\${GREEN}✅ CABINET_DOMAIN задан: \$cabinet_domain\${NC}"
+        else
+            echo -e "\${YELLOW}⚠️  CABINET_DOMAIN не найден в \$caddy_env\${NC}"
+        fi
+    else
+        echo -e "\${YELLOW}⚠️  Не найден файл \$caddy_env\${NC}"
+    fi
+
+    if [ -f "\$caddy_file" ]; then
+        grep -q "reverse_proxy cabinet_frontend:80" "\$caddy_file" && echo -e "\${GREEN}✅ Найден reverse_proxy cabinet_frontend:80\${NC}" || echo -e "\${YELLOW}⚠️  В Caddyfile нет reverse_proxy cabinet_frontend:80\${NC}"
+        grep -q "handle /api/\\*" "\$caddy_file" && echo -e "\${GREEN}✅ Найден блок handle /api/*\${NC}" || echo -e "\${YELLOW}⚠️  В Caddyfile нет блока handle /api/*\${NC}"
+    else
+        echo -e "\${YELLOW}⚠️  Не найден файл \$caddy_file\${NC}"
+    fi
+
+    echo -e "\${WHITE}Подсказка:\${NC} cd \$CABINET_CADDY_DIR && docker compose up -d --force-recreate caddy"
+}
+
+do_cabinet_caddy_recreate() {
+    if [ ! -f "\$CABINET_CADDY_DIR/docker-compose.yml" ]; then
+        echo -e "\${YELLOW}Caddy compose не найден в \$CABINET_CADDY_DIR\${NC}"
+        return 1
+    fi
+    echo -e "\${CYAN}🔄 Пересоздание Caddy...\${NC}"
+    if (cd "\$CABINET_CADDY_DIR" && docker compose up -d --force-recreate caddy); then
+        echo -e "\${GREEN}✅ Caddy пересоздан\${NC}"
+    else
+        echo -e "\${RED}❌ Не удалось пересоздать Caddy\${NC}"
+        return 1
+    fi
+}
+
+cabinet_menu() {
+    while true; do
+        echo
+        echo -e "\${WHITE}Кабинет:\${NC}"
+        echo -e "  \${CYAN}1)\${NC} Установить кабинет"
+        echo -e "  \${CYAN}2)\${NC} Обновить кабинет"
+        echo -e "  \${CYAN}3)\${NC} Статус кабинета"
+        echo -e "  \${CYAN}4)\${NC} Проверка Caddy (cabinet)"
+        echo -e "  \${CYAN}5)\${NC} Пересоздать Caddy"
+        echo -e "  \${CYAN}0)\${NC} Назад"
+        echo
+        read -p "Ваш выбор: " cabinet_choice
+        case \$cabinet_choice in
+            1) do_cabinet_install; read -p "Нажмите Enter..." ;;
+            2) do_cabinet_update; read -p "Нажмите Enter..." ;;
+            3) do_cabinet_status; read -p "Нажмите Enter..." ;;
+            4) do_cabinet_caddy_check; read -p "Нажмите Enter..." ;;
+            5) do_cabinet_caddy_recreate; read -p "Нажмите Enter..." ;;
+            0) return ;;
+            *) echo -e "\${RED}Неверный выбор\${NC}"; sleep 1 ;;
+        esac
+    done
 }
 
 do_install() {
@@ -624,6 +917,7 @@ show_menu() {
     echo -e "  \${CYAN}i)\${NC} 🔧 Установщик        \${CYAN}L)\${NC} 🗑️  Удаление"
     echo
     echo -e "  \${CYAN}11)\${NC} ℹ️ Версия"
+    echo -e "  \${CYAN}12)\${NC} Cabinet"
     echo -e "  \${CYAN}q)\${NC} Выход"
     echo
 }
@@ -645,6 +939,7 @@ interactive_menu() {
             9) update_menu ;;
             10) update_installer; read -p "Нажмите Enter..." ;;
             11) show_version; read -p "Нажмите Enter..." ;;
+            12) cabinet_menu ;;
             i|I) do_install; read -p "Нажмите Enter..." ;;
             l|L) do_uninstall; break ;;
             q|Q|exit) echo -e "\${GREEN}До свидания!\${NC}"; exit 0 ;;
@@ -674,6 +969,10 @@ show_help() {
     echo -e "  \${GREEN}config\${NC}     — Редактировать .env"
     echo -e "  \${GREEN}install\${NC}    — Запустить установщик"
     echo -e "  \${GREEN}installer\${NC}  — Обновить скрипты установщика"
+    echo -e "  \${GREEN}cabinet-install\${NC}  — Установить кабинет"
+    echo -e "  \${GREEN}cabinet-update\${NC}   — Обновить кабинет"
+    echo -e "  \${GREEN}cabinet-status\${NC}   — Статус кабинета"
+    echo -e "  \${GREEN}cabinet-caddy\${NC}    — Проверка Caddy для кабинета"
     echo -e "  \${GREEN}uninstall\${NC}  — Удаление бота"
 }
 
@@ -689,6 +988,12 @@ case "\$1" in
     config|edit) do_config ;;
     install|setup|reinstall) do_install ;;
     installer|installer-update) update_installer ;;
+    cabinet)    cabinet_menu ;;
+    cabinet-install|cabinet-setup) do_cabinet_install ;;
+    cabinet-update|cabinet-upgrade) do_cabinet_update ;;
+    cabinet-status|cabinet-info) do_cabinet_status ;;
+    cabinet-caddy) do_cabinet_caddy_check ;;
+    cabinet-caddy-recreate) do_cabinet_caddy_recreate ;;
     uninstall|remove) do_uninstall ;;
     help|--help|-h) show_help ;;
     version|ver) show_version ;;
@@ -701,7 +1006,15 @@ case "\$1" in
 esac
 BOTEOF
 
-    chmod +x /usr/local/bin/bot
+    then
+        echo -e "${RED}❌ Не удалось записать /usr/local/bin/bot${NC}"
+        return 1
+    fi
+
+    if ! chmod +x /usr/local/bin/bot; then
+        echo -e "${RED}❌ Не удалось выдать права на /usr/local/bin/bot${NC}"
+        return 1
+    fi
     if [ -d "/usr/bin" ]; then
         ln -sfn /usr/local/bin/bot /usr/bin/bot 2>/dev/null || true
     fi
@@ -728,13 +1041,31 @@ update_installer() {
     git clone --depth 1 --single-branch --branch spiderman https://github.com/RamaPulya/bot_auto_install.git "$TEMP_DIR" 2>/dev/null
     
     if [ -d "$TEMP_DIR/scripts" ]; then
-        rm -rf "$INSTALLER_DIR" 2>/dev/null
-        cp -r "$TEMP_DIR/scripts" "$INSTALLER_DIR"
+        if [ ! -d "$INSTALL_DIR" ] || [ ! -w "$INSTALL_DIR" ]; then
+            echo -e "${RED}❌ Нет прав на запись в $INSTALL_DIR. Запустите bot от root (sudo).${NC}"
+            rm -rf "$TEMP_DIR"
+            return 1
+        fi
+
+        rm -rf "$INSTALLER_DIR" 2>/dev/null || true
+        if ! cp -r "$TEMP_DIR/scripts" "$INSTALLER_DIR"; then
+            echo -e "${RED}❌ Не удалось обновить скрипты установщика (ошибка записи в $INSTALLER_DIR)${NC}"
+            rm -rf "$TEMP_DIR"
+            return 1
+        fi
         chmod +x "$INSTALLER_DIR"/*.sh 2>/dev/null
         chmod +x "$INSTALLER_DIR"/lib/*.sh 2>/dev/null
         
         VERSION=$(cat "$INSTALLER_DIR/VERSION" 2>/dev/null || echo "?")
         echo -e "${GREEN}✅ Скрипты установщика обновлены (v$VERSION)${NC}"
+        if [ -x "$INSTALLER_DIR/upgrade.sh" ]; then
+            if FORCE_INSTALL_BOT_COMMAND=true bash "$INSTALLER_DIR/upgrade.sh" --install-bot-command --force >/dev/null 2>&1; then
+                echo -e "${GREEN}✅ Команда bot пересоздана автоматически${NC}"
+            else
+                echo -e "${YELLOW}⚠️  Не удалось пересоздать команду bot автоматически${NC}"
+                echo -e "${YELLOW}   Выполните: bash $INSTALLER_DIR/upgrade.sh --install-bot-command --force${NC}"
+            fi
+        fi
     else
         echo -e "${RED}❌ Ошибка загрузки${NC}"
     fi
@@ -770,6 +1101,14 @@ if grep -q "external: true" "$INSTALL_DIR/$COMPOSE_FILE" 2>/dev/null; then
         echo -e "${YELLOW}   Сеть не найдена. Создаём...${NC}"
         docker network create "$NETWORK_NAME" 2>/dev/null || true
     fi
+fi
+
+if [ "$1" = "--install-bot-command" ]; then
+    if [ "$2" = "--force" ]; then
+        FORCE_INSTALL_BOT_COMMAND="true"
+    fi
+    install_bot_command
+    exit $?
 fi
 
 echo -e "${PURPLE}"
@@ -834,6 +1173,3 @@ echo -e "${GREEN}╚════════════════════
 echo
 echo -e "${WHITE}Используйте команду ${CYAN}bot${NC} для управления ботом${NC}"
 echo
-
-
-

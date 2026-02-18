@@ -38,6 +38,21 @@ create_management_scripts() {
     if [ -f "docker-compose.local.yml" ]; then
         compose_file="docker-compose.local.yml"
     fi
+
+    # Предпочитаем генерацию команды bot через upgrade.sh, чтобы использовать
+    # актуальную логику меню и команд из одного источника.
+    local installer_dir="$INSTALL_DIR/.installer"
+    if [ -x "$installer_dir/upgrade.sh" ]; then
+        if FORCE_INSTALL_BOT_COMMAND=true bash "$installer_dir/upgrade.sh" --install-bot-command --force; then
+            print_success "Команда управления 'bot' создана через upgrade.sh"
+            echo
+            echo -e "${GREEN}🎉 Теперь вы можете управлять ботом командой:${NC}"
+            echo -e "   ${WHITE}bot${NC}        — интерактивное меню"
+            echo -e "   ${WHITE}bot help${NC}   — справка по командам"
+            return 0
+        fi
+        print_warning "Не удалось создать команду bot через upgrade.sh, используем fallback-скрипт"
+    fi
     
     # Создаём единый скрипт управления в /usr/local/bin/bot
     cat > /usr/local/bin/bot << 'BOTSCRIPT'
@@ -411,29 +426,38 @@ update_installer_scripts() {
     git clone --depth 1 --single-branch --branch spiderman https://github.com/RamaPulya/bot_auto_install.git "$TEMP_DIR" 2>/dev/null
     
     if [ -d "$TEMP_DIR/scripts" ]; then
+        if [ ! -d "$INSTALL_DIR" ] || [ ! -w "$INSTALL_DIR" ]; then
+            echo -e "${RED}❌ Нет прав на запись в $INSTALL_DIR. Запустите bot от root (sudo).${NC}"
+            rm -rf "$TEMP_DIR"
+            return 1
+        fi
+
         # Бэкап старой версии
         if [ -d "$INSTALLER_DIR" ]; then
             mv "$INSTALLER_DIR" "${INSTALLER_DIR}.backup_$(date +%Y%m%d_%H%M%S)" 2>/dev/null
         fi
         
         # Копируем новую версию
-        cp -r "$TEMP_DIR/scripts" "$INSTALLER_DIR"
+        if ! cp -r "$TEMP_DIR/scripts" "$INSTALLER_DIR"; then
+            echo -e "${RED}❌ Не удалось обновить скрипты установщика (ошибка записи в $INSTALLER_DIR)${NC}"
+            rm -rf "$TEMP_DIR"
+            return 1
+        fi
         chmod +x "$INSTALLER_DIR"/*.sh 2>/dev/null
         chmod +x "$INSTALLER_DIR"/lib/*.sh 2>/dev/null
         
         local NEW_VERSION=$(cat "$INSTALLER_DIR/VERSION" 2>/dev/null || echo "?")
         echo -e "${GREEN}✅ Обновлено до версии $NEW_VERSION${NC}"
         
-        # Автообновление команды bot на новую версию скриптов
-        cat > /usr/local/bin/bot << EOF
-#!/bin/bash
-exec bash "$INSTALLER_DIR/upgrade.sh" "\$@"
-EOF
-        chmod +x /usr/local/bin/bot
-        if [ -d "/usr/bin" ]; then
-            ln -sfn /usr/local/bin/bot /usr/bin/bot 2>/dev/null || true
+        # Пересоздаём команду bot на новых скриптах установщика
+        if [ -x "$INSTALLER_DIR/upgrade.sh" ]; then
+            if FORCE_INSTALL_BOT_COMMAND=true bash "$INSTALLER_DIR/upgrade.sh" --install-bot-command --force >/dev/null 2>&1; then
+                echo -e "${GREEN}✅ Команда bot пересоздана автоматически${NC}"
+            else
+                echo -e "${YELLOW}⚠️  Не удалось пересоздать команду bot автоматически${NC}"
+                echo -e "${YELLOW}   Выполните: bash $INSTALLER_DIR/upgrade.sh --install-bot-command --force${NC}"
+            fi
         fi
-        echo -e "${GREEN}✅ Команда bot обновлена автоматически${NC}"
         
         # Удаляем старые бэкапы (оставляем последние 3)
         ls -dt "${INSTALLER_DIR}.backup_"* 2>/dev/null | tail -n +4 | xargs -r rm -rf

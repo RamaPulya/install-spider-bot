@@ -58,3 +58,16 @@ curl -fsSL https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderma
 - Caddy и панель должны быть в одной Docker-сети (обычно `remnawave-network`).
 - Бот использует `remnawave_bot` как имя сервиса внутри docker сети.
 - Если Caddy не найден или выключен, используется стандартная настройка Nginx.
+
+## Личный кабинет через `bot` (spiderman)
+
+- Добавлены команды:
+  - `bot cabinet-install`
+  - `bot cabinet-update`
+  - `bot cabinet-status`
+  - `bot cabinet-caddy`
+- Кабинет устанавливается/обновляется в `/opt/bedolaga-cabinet` из `RamaPulya/bedolaga-cabinet`, ветка `spiderman`.
+- Перед деплоем всегда пересоздаётся `docker-compose.override.yml`, чтобы `cabinet_frontend` подключался к external-сети `remnawave-network`.
+- Деплой выполняется через:
+  - `docker compose up -d --build --force-recreate cabinet-frontend`
+- После деплоя скрипт проверяет фактическое подключение контейнера к `remnawave-network` (без ручного `docker network connect`).
