@@ -71,3 +71,18 @@ curl -fsSL https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderma
 - Деплой выполняется через:
   - `docker compose up -d --build --force-recreate cabinet-frontend`
 - После деплоя скрипт проверяет фактическое подключение контейнера к `remnawave-network` (без ручного `docker network connect`).
+
+## Надежность обновлений (preflight + lock)
+
+- Перед критичными действиями (`update`, `installer-update`, `cabinet-*`, `install`, `uninstall`) выполняется preflight:
+  - проверка обязательных команд (`docker`, `git`, `df`);
+  - доступ к Docker daemon;
+  - для root-операций проверка прав на `/opt` и `/usr/local/bin`;
+  - проверка прав на запись только для mutating-операций (для read-only команд запись не требуется);
+  - проверка свободного места;
+  - проверка сети до GitHub для действий, которым нужен download/fetch.
+- Для mutating-операций используется lock-файл `/var/lock/remnawave-bot.lock` (через `flock`, fallback на lockfile).
+- Для внутренних пересозданий команды `bot` используется `BOT_SKIP_LOCK=true`, чтобы избежать самоблокировки.
+- Базовые коды возврата:
+  - `20` — preflight не пройден;
+  - `21` — lock занят (уже запущена другая операция).

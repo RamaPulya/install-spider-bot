@@ -1,9 +1,12 @@
 #!/bin/bash
 
+# Strict mode: fail fast on unhandled errors/undefined vars/pipeline failures.
+set -Eeuo pipefail
+
 # ===============================================
 # 🔄 REMNAWAVE BEDOLAGA BOT - ОБНОВЛЕНИЕ
 # ===============================================
-# НЕ используем set -e чтобы продолжить при ошибках
+# Для menu/runtime внутри bot отключается errexit точечно (set +e в циклах меню).
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -24,6 +27,205 @@ CABINET_SERVICE_NAME="cabinet-frontend"
 CABINET_NETWORK_NAME="remnawave-network"
 CABINET_CADDY_DIR="/opt/caddy-remnawave"
 
+EXIT_OK=0
+EXIT_PREFLIGHT=20
+EXIT_LOCK=21
+EXIT_RUNTIME=22
+
+LOCK_FILE="${LOCK_FILE:-/var/lock/remnawave-bot.lock}"
+LOCK_HELD=0
+LOCK_METHOD=""
+LOCK_DIR="$(dirname "$LOCK_FILE")"
+
+if [ ! -d "$LOCK_DIR" ] || [ ! -w "$LOCK_DIR" ]; then
+    LOCK_FILE="/tmp/remnawave-bot.lock"
+fi
+
+log_error() {
+    echo -e "${RED}❌ $*${NC}" >&2
+}
+
+log_warn() {
+    echo -e "${YELLOW}⚠️  $*${NC}" >&2
+}
+
+release_lock() {
+    if [ "$LOCK_HELD" -ne 1 ]; then
+        return 0
+    fi
+
+    if [ "$LOCK_METHOD" = "flock" ]; then
+        flock -u 9 2>/dev/null || true
+    elif [ "$LOCK_METHOD" = "file" ]; then
+        rm -f "$LOCK_FILE" 2>/dev/null || true
+    fi
+
+    LOCK_HELD=0
+    LOCK_METHOD=""
+}
+
+acquire_lock() {
+    if [ "${BOT_SKIP_LOCK:-false}" = "true" ]; then
+        return 0
+    fi
+
+    if [ "$LOCK_HELD" -eq 1 ]; then
+        return 0
+    fi
+
+    local lock_dir
+    lock_dir="$(dirname "$LOCK_FILE")"
+    mkdir -p "$lock_dir" 2>/dev/null || true
+
+    if command -v flock >/dev/null 2>&1; then
+        exec 9>"$LOCK_FILE" || {
+            log_error "Cannot open lock file: $LOCK_FILE"
+            return "$EXIT_LOCK"
+        }
+        if ! flock -n 9; then
+            log_error "Another bot operation is already running (lock: $LOCK_FILE)"
+            return "$EXIT_LOCK"
+        fi
+        LOCK_HELD=1
+        LOCK_METHOD="flock"
+        return 0
+    fi
+
+    if ( set -o noclobber; echo "$$" > "$LOCK_FILE" ) 2>/dev/null; then
+        LOCK_HELD=1
+        LOCK_METHOD="file"
+        return 0
+    fi
+
+    log_error "Another bot operation is already running (lock: $LOCK_FILE)"
+    return "$EXIT_LOCK"
+}
+
+require_command() {
+    local cmd="$1"
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+        log_error "Required command not found: $cmd"
+        return "$EXIT_PREFLIGHT"
+    fi
+}
+
+check_disk_free_mb() {
+    local target="$1"
+    local min_mb="$2"
+    local avail_kb
+    avail_kb="$(df -Pk "$target" 2>/dev/null | awk 'NR==2{print $4}')"
+    if [ -z "$avail_kb" ]; then
+        log_error "Cannot check free disk space for: $target"
+        return "$EXIT_PREFLIGHT"
+    fi
+
+    local min_kb=$((min_mb * 1024))
+    if [ "$avail_kb" -lt "$min_kb" ]; then
+        log_error "Not enough disk space in $target (required ${min_mb}MB, available $((avail_kb / 1024))MB)"
+        return "$EXIT_PREFLIGHT"
+    fi
+}
+
+ensure_writable_path() {
+    local target="$1"
+    local probe="$target"
+    if [ ! -d "$probe" ]; then
+        probe="$(dirname "$probe")"
+    fi
+
+    if [ ! -d "$probe" ] || [ ! -w "$probe" ]; then
+        log_error "No write access to: $probe"
+        return "$EXIT_PREFLIGHT"
+    fi
+}
+
+check_system_paths_for_root() {
+    local action="$1"
+    local p
+    for p in /opt /usr/local/bin; do
+        if ! ensure_writable_path "$p"; then
+            log_error "Action '$action' requires write access to: $p"
+            return "$EXIT_PREFLIGHT"
+        fi
+    done
+}
+
+check_network_github() {
+    if ! git ls-remote --heads https://github.com/RamaPulya/bot_auto_install.git >/dev/null 2>&1; then
+        log_error "Network check failed: cannot reach GitHub repository"
+        return "$EXIT_PREFLIGHT"
+    fi
+}
+
+ensure_docker_access() {
+    if ! docker info >/dev/null 2>&1; then
+        log_error "Docker daemon is unavailable for current user"
+        return "$EXIT_PREFLIGHT"
+    fi
+}
+
+preflight_action() {
+    local action="$1"
+    local need_lock="${2:-false}"
+    local need_network="${3:-false}"
+    local need_root="${4:-false}"
+    local need_docker="${5:-false}"
+    local need_git="${6:-false}"
+    local min_disk_mb="${7:-128}"
+    local write_target="${8:-$INSTALL_DIR}"
+    local need_write="${9:-false}"
+
+    require_command df || return $?
+    if [ "$need_git" = "true" ] || [ "$need_network" = "true" ]; then
+        require_command git || return $?
+    fi
+    if [ "$need_docker" = "true" ]; then
+        require_command docker || return $?
+        ensure_docker_access || return $?
+    fi
+
+    if [ "$need_root" = "true" ] && [ "$(id -u)" -ne 0 ]; then
+        log_error "Action '$action' must be run as root/sudo"
+        return "$EXIT_PREFLIGHT"
+    fi
+    if [ "$need_root" = "true" ]; then
+        check_system_paths_for_root "$action" || return $?
+    fi
+
+    local disk_target="$write_target"
+    if [ ! -e "$disk_target" ]; then
+        disk_target="$(dirname "$disk_target")"
+    fi
+
+    check_disk_free_mb "$disk_target" "$min_disk_mb" || return $?
+    if [ "$need_write" = "true" ]; then
+        ensure_writable_path "$write_target" || return $?
+    fi
+
+    if [ "$need_network" = "true" ]; then
+        check_network_github || return $?
+    fi
+
+    if [ "$need_lock" = "true" ]; then
+        acquire_lock || return $?
+    fi
+
+    return 0
+}
+
+cleanup_script() {
+    release_lock
+}
+
+on_err() {
+    local rc=$?
+    log_error "Execution failed (exit code $rc)"
+    exit "$rc"
+}
+
+trap cleanup_script EXIT INT TERM
+trap on_err ERR
+
 # ═══════════════════════════════════════════════════════════════
 # ФУНКЦИИ (определяем ДО использования)
 # ═══════════════════════════════════════════════════════════════
@@ -43,6 +245,8 @@ find_install_dir() {
 
 # Функция обновления бота
 upgrade_bot() {
+    preflight_action "upgrade-bot" true false false true true 1024 "$INSTALL_DIR" true || return $?
+
     echo
     echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
     echo -e "${WHITE}📦 ОБНОВЛЕНИЕ БОТА${NC}"
@@ -103,8 +307,14 @@ upgrade_bot() {
     
     # Пересборка контейнеров
     echo -e "${CYAN}🐳 Пересборка контейнеров...${NC}"
-    docker compose -f "$COMPOSE_FILE" down || true
-    docker compose -f "$COMPOSE_FILE" build --no-cache
+    if ! docker compose -f "$COMPOSE_FILE" down; then
+        echo -e "${RED}⚠️  Ошибка остановки контейнеров перед обновлением${NC}"
+        return "$EXIT_RUNTIME"
+    fi
+    if ! docker compose -f "$COMPOSE_FILE" build --no-cache; then
+        echo -e "${RED}⚠️  Ошибка сборки контейнеров${NC}"
+        return "$EXIT_RUNTIME"
+    fi
     
     if docker compose -f "$COMPOSE_FILE" up -d; then
         echo -e "${GREEN}✅ Бот обновлён и запущен${NC}"
@@ -112,11 +322,14 @@ upgrade_bot() {
         echo -e "${RED}⚠️  Ошибка запуска контейнеров!${NC}"
         echo -e "${YELLOW}Проверьте: docker compose -f $COMPOSE_FILE logs${NC}"
         echo -e "${YELLOW}Возможно нужно создать сеть: docker network create remnawave-network${NC}"
+        return "$EXIT_RUNTIME"
     fi
 }
 
 # Функция установки команды bot
 install_bot_command() {
+    preflight_action "install-bot-command" true false true false false 128 "/usr/local/bin" true || return $?
+
     echo
     echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
     echo -e "${WHITE}🎮 УСТАНОВКА КОМАНДЫ 'bot'${NC}"
@@ -162,6 +375,8 @@ CABINET_SERVICE_NAME="cabinet-frontend"
 CABINET_NETWORK_NAME="remnawave-network"
 CABINET_CADDY_DIR="/opt/caddy-remnawave"
 
+set -Eeuo pipefail
+
 # Цвета
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -170,6 +385,193 @@ CYAN='\033[0;36m'
 PURPLE='\033[0;35m'
 WHITE='\033[1;37m'
 NC='\033[0m'
+
+EXIT_PREFLIGHT=20
+EXIT_LOCK=21
+EXIT_RUNTIME=22
+
+LOCK_FILE="\${LOCK_FILE:-/var/lock/remnawave-bot.lock}"
+LOCK_HELD=0
+LOCK_METHOD=""
+LOCK_DIR=\$(dirname "\$LOCK_FILE")
+
+if [ ! -d "\$LOCK_DIR" ] || [ ! -w "\$LOCK_DIR" ]; then
+    LOCK_FILE="/tmp/remnawave-bot.lock"
+fi
+
+bot_log_error() {
+    echo -e "\${RED}❌ \$*\${NC}" >&2
+}
+
+release_lock() {
+    if [ "\$LOCK_HELD" -ne 1 ]; then
+        return 0
+    fi
+
+    if [ "\$LOCK_METHOD" = "flock" ]; then
+        flock -u 8 2>/dev/null || true
+    elif [ "\$LOCK_METHOD" = "file" ]; then
+        rm -f "\$LOCK_FILE" 2>/dev/null || true
+    fi
+
+    LOCK_HELD=0
+    LOCK_METHOD=""
+}
+
+acquire_lock() {
+    if [ "\${BOT_SKIP_LOCK:-false}" = "true" ]; then
+        return 0
+    fi
+
+    if [ "\$LOCK_HELD" -eq 1 ]; then
+        return 0
+    fi
+
+    local lock_dir
+    lock_dir="\$(dirname "\$LOCK_FILE")"
+    mkdir -p "\$lock_dir" 2>/dev/null || true
+
+    if command -v flock >/dev/null 2>&1; then
+        exec 8>"\$LOCK_FILE" || {
+            bot_log_error "Cannot open lock file: \$LOCK_FILE"
+            return "\$EXIT_LOCK"
+        }
+        if ! flock -n 8; then
+            bot_log_error "Another bot operation is already running (lock: \$LOCK_FILE)"
+            return "\$EXIT_LOCK"
+        fi
+        LOCK_HELD=1
+        LOCK_METHOD="flock"
+        return 0
+    fi
+
+    if ( set -o noclobber; echo "\$\$" > "\$LOCK_FILE" ) 2>/dev/null; then
+        LOCK_HELD=1
+        LOCK_METHOD="file"
+        return 0
+    fi
+
+    bot_log_error "Another bot operation is already running (lock: \$LOCK_FILE)"
+    return "\$EXIT_LOCK"
+}
+
+require_command() {
+    local cmd="\$1"
+    if ! command -v "\$cmd" >/dev/null 2>&1; then
+        bot_log_error "Required command not found: \$cmd"
+        return "\$EXIT_PREFLIGHT"
+    fi
+}
+
+check_disk_free_mb() {
+    local target="\$1"
+    local min_mb="\$2"
+    local avail_kb
+    avail_kb="\$(df -Pk "\$target" 2>/dev/null | awk 'NR==2{print \$4}')"
+    if [ -z "\$avail_kb" ]; then
+        bot_log_error "Cannot check free disk space for: \$target"
+        return "\$EXIT_PREFLIGHT"
+    fi
+
+    local min_kb=\$((min_mb * 1024))
+    if [ "\$avail_kb" -lt "\$min_kb" ]; then
+        bot_log_error "Not enough disk space in \$target (required \${min_mb}MB, available \$((avail_kb / 1024))MB)"
+        return "\$EXIT_PREFLIGHT"
+    fi
+}
+
+ensure_writable_path() {
+    local target="\$1"
+    local probe="\$target"
+    if [ ! -d "\$probe" ]; then
+        probe="\$(dirname "\$probe")"
+    fi
+
+    if [ ! -d "\$probe" ] || [ ! -w "\$probe" ]; then
+        bot_log_error "No write access to: \$probe"
+        return "\$EXIT_PREFLIGHT"
+    fi
+}
+
+check_system_paths_for_root() {
+    local action="\$1"
+    local p
+    for p in /opt /usr/local/bin; do
+        if ! ensure_writable_path "\$p"; then
+            bot_log_error "Action '\$action' requires write access to: \$p"
+            return "\$EXIT_PREFLIGHT"
+        fi
+    done
+}
+
+check_network_github() {
+    if ! git ls-remote --heads https://github.com/RamaPulya/bot_auto_install.git >/dev/null 2>&1; then
+        bot_log_error "Network check failed: cannot reach GitHub repository"
+        return "\$EXIT_PREFLIGHT"
+    fi
+}
+
+ensure_docker_access() {
+    if ! docker info >/dev/null 2>&1; then
+        bot_log_error "Docker daemon is unavailable for current user"
+        return "\$EXIT_PREFLIGHT"
+    fi
+}
+
+preflight_action() {
+    local action="\$1"
+    local need_lock="\${2:-false}"
+    local need_network="\${3:-false}"
+    local need_root="\${4:-false}"
+    local need_docker="\${5:-false}"
+    local need_git="\${6:-false}"
+    local min_disk_mb="\${7:-128}"
+    local write_target="\${8:-\$INSTALL_DIR}"
+    local need_write="\${9:-false}"
+
+    require_command df || return \$?
+    if [ "\$need_git" = "true" ] || [ "\$need_network" = "true" ]; then
+        require_command git || return \$?
+    fi
+    if [ "\$need_docker" = "true" ]; then
+        require_command docker || return \$?
+        ensure_docker_access || return \$?
+    fi
+
+    if [ "\$need_root" = "true" ] && [ "\$(id -u)" -ne 0 ]; then
+        bot_log_error "Action '\$action' must be run as root/sudo"
+        return "\$EXIT_PREFLIGHT"
+    fi
+    if [ "\$need_root" = "true" ]; then
+        check_system_paths_for_root "\$action" || return \$?
+    fi
+
+    local disk_target="\$write_target"
+    if [ ! -e "\$disk_target" ]; then
+        disk_target="\$(dirname "\$disk_target")"
+    fi
+
+    check_disk_free_mb "\$disk_target" "\$min_disk_mb" || return \$?
+    if [ "\$need_write" = "true" ]; then
+        ensure_writable_path "\$write_target" || return \$?
+    fi
+
+    if [ "\$need_network" = "true" ]; then
+        check_network_github || return \$?
+    fi
+
+    if [ "\$need_lock" = "true" ]; then
+        acquire_lock || return \$?
+    fi
+
+    return 0
+}
+
+cleanup_runtime() {
+    release_lock
+}
+
+trap cleanup_runtime EXIT INT TERM
 
 check_install_dir() {
     if [ ! -d "\$INSTALL_DIR" ]; then
@@ -181,12 +583,14 @@ check_install_dir() {
 
 do_logs() {
     check_install_dir
+    preflight_action "logs" false false false true false 128 "\$INSTALL_DIR" false || return \$?
     echo -e "\${CYAN}📋 Логи бота (Ctrl+C для выхода)...\${NC}"
     docker compose -f "\$COMPOSE_FILE" logs -f --tail=150 bot
 }
 
 do_status() {
     check_install_dir
+    preflight_action "status" false false false true false 128 "\$INSTALL_DIR" false || return \$?
     echo -e "\${CYAN}═══════════════════════════════════════════════════════════════\${NC}"
     echo -e "\${WHITE}📊 СТАТУС КОНТЕЙНЕРОВ\${NC}"
     echo -e "\${CYAN}═══════════════════════════════════════════════════════════════\${NC}"
@@ -199,6 +603,7 @@ do_status() {
 
 do_restart() {
     check_install_dir
+    preflight_action "restart" true false false true false 256 "\$INSTALL_DIR" true || return \$?
     echo -e "\${CYAN}🔄 Перезапуск бота (применяем .env)...\${NC}"
     
     # Проверяем и создаём сеть если нужно
@@ -215,11 +620,13 @@ do_restart() {
         echo -e "\${GREEN}✅ Бот перезапущен\${NC}"
     else
         echo -e "\${RED}❌ Бот не запустился! Проверьте логи: bot logs\${NC}"
+        return 1
     fi
 }
 
 do_start() {
     check_install_dir
+    preflight_action "start" true false false true false 256 "\$INSTALL_DIR" true || return \$?
     echo -e "\${CYAN}▶️  Запуск бота...\${NC}"
     
     # Проверяем и создаём сеть если нужно
@@ -236,21 +643,28 @@ do_start() {
             echo -e "\${GREEN}✅ Бот запущен\${NC}"
         else
             echo -e "\${RED}❌ Бот не запустился! Проверьте логи: bot logs\${NC}"
+            return 1
         fi
     else
         echo -e "\${RED}❌ Ошибка запуска!\${NC}"
+        return 1
     fi
 }
 
 do_stop() {
     check_install_dir
+    preflight_action "stop" true false false true false 128 "\$INSTALL_DIR" true || return \$?
     echo -e "\${CYAN}⏹️  Остановка бота...\${NC}"
-    docker compose -f "\$COMPOSE_FILE" down
+    if ! docker compose -f "\$COMPOSE_FILE" down; then
+        echo -e "\${RED}❌ Не удалось остановить контейнеры\${NC}"
+        return 1
+    fi
     echo -e "\${GREEN}✅ Бот остановлен\${NC}"
 }
 
 do_update() {
     check_install_dir
+    preflight_action "update" true true false true true 1024 "\$INSTALL_DIR" true || return \$?
     echo -e "\${CYAN}📦 Обновление бота...\${NC}"
     cp .env ".env.backup_\$(date +%Y%m%d_%H%M%S)" 2>/dev/null
 
@@ -278,9 +692,18 @@ do_update() {
     else
         echo -e "\${YELLOW}⚠️  Git-репозиторий не найден — обновление кода пропущено\${NC}"
     fi
-    docker compose -f "\$COMPOSE_FILE" down
-    docker compose -f "\$COMPOSE_FILE" build --no-cache
-    docker compose -f "\$COMPOSE_FILE" up -d
+    if ! docker compose -f "\$COMPOSE_FILE" down; then
+        echo -e "\${RED}❌ Не удалось остановить контейнеры перед обновлением\${NC}"
+        return 1
+    fi
+    if ! docker compose -f "\$COMPOSE_FILE" build --no-cache; then
+        echo -e "\${RED}❌ Не удалось пересобрать контейнеры\${NC}"
+        return 1
+    fi
+    if ! docker compose -f "\$COMPOSE_FILE" up -d; then
+        echo -e "\${RED}❌ Не удалось запустить контейнеры после обновления\${NC}"
+        return 1
+    fi
     echo -e "\${GREEN}✅ Обновление завершено\${NC}"
 }
 
@@ -321,6 +744,7 @@ show_update_info() {
 }
 
 update_menu() {
+    set +e
     while true; do
         show_update_info || true
         echo -e "\${WHITE}Выберите действие:\${NC}"
@@ -337,6 +761,8 @@ update_menu() {
 }
 
 update_installer() {
+    preflight_action "update-installer" true true true false true 256 "\$INSTALL_DIR" true || return \$?
+
     echo
     echo -e "\${CYAN}═══════════════════════════════════════════════════════════════\${NC}"
     echo -e "\${WHITE}🔧 ОБНОВЛЕНИЕ СКРИПТОВ УСТАНОВЩИКА\${NC}"
@@ -368,7 +794,7 @@ update_installer() {
 
         # Автообновление команды bot на новую версию скриптов
         if [ -x "\$INSTALLER_DIR/upgrade.sh" ]; then
-            if FORCE_INSTALL_BOT_COMMAND=true bash "\$INSTALLER_DIR/upgrade.sh" --install-bot-command --force >/dev/null 2>&1; then
+            if BOT_SKIP_LOCK=true FORCE_INSTALL_BOT_COMMAND=true bash "\$INSTALLER_DIR/upgrade.sh" --install-bot-command --force >/dev/null 2>&1; then
                 echo -e "\${GREEN}✅ Команда bot пересоздана автоматически\${NC}"
             else
                 echo -e "\${YELLOW}⚠️  Не удалось пересоздать команду bot автоматически\${NC}"
@@ -377,6 +803,7 @@ update_installer() {
         fi
     else
         echo -e "\${RED}❌ Ошибка загрузки\${NC}"
+        return 1
     fi
     
     rm -rf "\$TEMP_DIR"
@@ -384,6 +811,7 @@ update_installer() {
 
 do_backup() {
     check_install_dir
+    preflight_action "backup" true false false true false 256 "\$INSTALL_DIR" true || return \$?
     local BACKUP_DIR="\$INSTALL_DIR/data/backups"
     local TIMESTAMP=\$(date +%Y%m%d_%H%M%S)
     local BACKUP_NAME="backup_\$TIMESTAMP"
@@ -450,6 +878,7 @@ do_backup() {
 
 do_health() {
     check_install_dir
+    preflight_action "health" false false false true false 128 "\$INSTALL_DIR" false || return \$?
     echo -e "\${CYAN}╔══════════════════════════════════════════════════════════════╗\${NC}"
     echo -e "\${CYAN}║           🏥 ДИАГНОСТИКА СИСТЕМЫ 🏥                          ║\${NC}"
     echo -e "\${CYAN}╚══════════════════════════════════════════════════════════════╝\${NC}"
@@ -471,6 +900,7 @@ do_health() {
 
 do_config() {
     check_install_dir
+    preflight_action "config" true false false false false 128 "\$INSTALL_DIR" true || return \$?
     \${EDITOR:-nano} "\$INSTALL_DIR/.env"
     echo -e "\${YELLOW}Перезапустите бота для применения: bot restart\${NC}"
 }
@@ -581,6 +1011,7 @@ deploy_cabinet_frontend() {
 }
 
 do_cabinet_install() {
+    preflight_action "cabinet-install" true true true true true 512 "\$CABINET_DIR" true || return \$?
     echo
     echo -e "\${CYAN}╔═══════════════════════════════════════════════════════════════════════════════╗\${NC}"
     echo -e "\${WHITE}👤 УСТАНОВКА КАБИНЕТА\${NC}"
@@ -596,6 +1027,7 @@ do_cabinet_install() {
 }
 
 do_cabinet_update() {
+    preflight_action "cabinet-update" true true true true true 512 "\$CABINET_DIR" true || return \$?
     echo
     echo -e "\${CYAN}╔═══════════════════════════════════════════════════════════════════════════════╗\${NC}"
     echo -e "\${WHITE}🔄 ОБНОВЛЕНИЕ КАБИНЕТА\${NC}"
@@ -611,6 +1043,7 @@ do_cabinet_update() {
 }
 
 do_cabinet_status() {
+    preflight_action "cabinet-status" false false false true true 128 "\$CABINET_DIR" false || return \$?
     echo
     echo -e "\${CYAN}╔═══════════════════════════════════════════════════════════════════════════════╗\${NC}"
     echo -e "\${WHITE}📊 СТАТУС КАБИНЕТА\${NC}"
@@ -663,6 +1096,7 @@ do_cabinet_status() {
 }
 
 do_cabinet_caddy_check() {
+    preflight_action "cabinet-caddy-check" false false false false false 128 "\$CABINET_CADDY_DIR" false || return \$?
     echo
     echo -e "\${CYAN}🔎 Проверка Caddy для кабинета...\${NC}"
 
@@ -697,6 +1131,7 @@ do_cabinet_caddy_check() {
 }
 
 do_cabinet_caddy_recreate() {
+    preflight_action "cabinet-caddy-recreate" true false false true false 128 "\$CABINET_CADDY_DIR" true || return \$?
     if [ ! -f "\$CABINET_CADDY_DIR/docker-compose.yml" ]; then
         echo -e "\${YELLOW}Caddy compose не найден в \$CABINET_CADDY_DIR\${NC}"
         return 1
@@ -711,6 +1146,7 @@ do_cabinet_caddy_recreate() {
 }
 
 cabinet_menu() {
+    set +e
     while true; do
         clear
         echo
@@ -736,6 +1172,7 @@ cabinet_menu() {
 }
 
 do_install() {
+    preflight_action "install" true false true false false 256 "\$INSTALL_DIR" true || return \$?
     local INSTALLER_DIR="\$INSTALL_DIR/.installer"
     
     echo -e "\${PURPLE}╔══════════════════════════════════════════════════════════════╗\${NC}"
@@ -819,6 +1256,7 @@ do_install() {
 
 do_uninstall() {
     check_install_dir
+    preflight_action "uninstall" true false true true false 128 "\$INSTALL_DIR" true || return \$?
     echo
     echo -e "\${RED}═══════════════════════════════════════════════════════════════\${NC}"
     echo -e "\${WHITE}🗑️  УДАЛЕНИЕ БОТА\${NC}"
@@ -860,6 +1298,7 @@ do_uninstall() {
 
 show_version() {
     check_install_dir
+    preflight_action "version" false false false false false 64 "\$INSTALL_DIR" false || return \$?
 
     local INSTALLER_VERSION="?"
     if [ -f "\$INSTALLER_DIR/VERSION" ]; then
@@ -924,6 +1363,7 @@ show_menu() {
 }
 
 interactive_menu() {
+    set +e
     while true; do
         show_menu
         read -p "Ваш выбор: " choice
@@ -1029,6 +1469,7 @@ BOTEOF
 
 # Функция обновления скриптов установщика
 update_installer() {
+    preflight_action "installer-update" true true true false true 256 "$INSTALL_DIR" true || return $?
     echo
     echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
     echo -e "${WHITE}🔧 ОБНОВЛЕНИЕ СКРИПТОВ УСТАНОВЩИКА${NC}"
@@ -1060,7 +1501,7 @@ update_installer() {
         VERSION=$(cat "$INSTALLER_DIR/VERSION" 2>/dev/null || echo "?")
         echo -e "${GREEN}✅ Скрипты установщика обновлены (v$VERSION)${NC}"
         if [ -x "$INSTALLER_DIR/upgrade.sh" ]; then
-            if FORCE_INSTALL_BOT_COMMAND=true bash "$INSTALLER_DIR/upgrade.sh" --install-bot-command --force >/dev/null 2>&1; then
+            if BOT_SKIP_LOCK=true FORCE_INSTALL_BOT_COMMAND=true bash "$INSTALLER_DIR/upgrade.sh" --install-bot-command --force >/dev/null 2>&1; then
                 echo -e "${GREEN}✅ Команда bot пересоздана автоматически${NC}"
             else
                 echo -e "${YELLOW}⚠️  Не удалось пересоздать команду bot автоматически${NC}"
@@ -1069,6 +1510,7 @@ update_installer() {
         fi
     else
         echo -e "${RED}❌ Ошибка загрузки${NC}"
+        return 1
     fi
     
     rm -rf "$TEMP_DIR"
@@ -1095,7 +1537,7 @@ elif [ -f "$INSTALL_DIR/.install_config" ]; then
 fi
 
 # Проверяем наличие external network в compose файле
-if grep -q "external: true" "$INSTALL_DIR/$COMPOSE_FILE" 2>/dev/null; then
+if command -v docker >/dev/null 2>&1 && grep -q "external: true" "$INSTALL_DIR/$COMPOSE_FILE" 2>/dev/null; then
     NETWORK_NAME=$(grep -A1 "external: true" "$INSTALL_DIR/$COMPOSE_FILE" | grep "name:" | awk '{print $2}' || echo "remnawave-network")
     if ! docker network ls --format '{{.Name}}' | grep -q "^${NETWORK_NAME}$"; then
         echo -e "${YELLOW}⚠️  Обнаружена external network: $NETWORK_NAME${NC}"
