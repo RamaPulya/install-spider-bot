@@ -1437,7 +1437,8 @@ show_help() {
     echo -e "  \${GREEN}uninstall\${NC}  — Удаление бота"
 }
 
-case "\$1" in
+CMD="\${1:-}"
+case "\$CMD" in
     logs)       do_logs ;;
     status)     do_status ;;
     restart)    do_restart ;;
@@ -1461,7 +1462,7 @@ case "\$1" in
     version|ver) show_version ;;
     "")         interactive_menu ;;
     *)
-        echo -e "\${RED}❌ Неизвестная команда: \$1\${NC}"
+        echo -e "\${RED}❌ Неизвестная команда: \$CMD\${NC}"
         echo "Используйте: bot help"
         exit 1
         ;;
@@ -1567,8 +1568,8 @@ if command -v docker >/dev/null 2>&1 && grep -q "external: true" "$INSTALL_DIR/$
     fi
 fi
 
-if [ "$1" = "--install-bot-command" ]; then
-    if [ "$2" = "--force" ]; then
+if [ "${1:-}" = "--install-bot-command" ]; then
+    if [ "${2:-}" = "--force" ]; then
         FORCE_INSTALL_BOT_COMMAND="true"
     fi
     install_bot_command
