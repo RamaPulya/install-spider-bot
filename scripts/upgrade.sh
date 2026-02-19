@@ -1172,8 +1172,8 @@ cabinet_menu() {
         echo -e "  \${CYAN}3)\${NC} 📊 Статус кабинета"
         echo -e "  \${CYAN}4)\${NC} 📋 Логи кабинета"
         echo -e "  \${CYAN}5)\${NC} 🌐 Проверка Caddy (cabinet)"
-        echo -e "  \${CYAN}6)\${NC} ♻️ Пересоздать Caddy"
-        echo -e "  \${CYAN}0)\${NC} ⬅️ Назад"
+        echo -e "  \${CYAN}6)\${NC} 🔁 Пересоздать Caddy"
+        echo -e "  \${CYAN}0)\${NC} ↩ Назад"
         echo
         read -p "Ваш выбор: " cabinet_choice
         case \$cabinet_choice in
@@ -1369,12 +1369,12 @@ show_menu() {
     echo
     echo -e "  \${CYAN}1)\${NC} 📋 Логи              \${CYAN}6)\${NC} 💾 Создать бэкап"
     echo -e "  \${CYAN}2)\${NC} 📊 Статус            \${CYAN}7)\${NC} 🏥 Диагностика"
-    echo -e "  \${CYAN}3)\${NC} 🔄 Перезапуск        \${CYAN}8)\${NC} ⚙️ Редактировать .env"
-    echo -e "  \${CYAN}4)\${NC} ▶️ Запуск            \${CYAN}9)\${NC} 📦 Обновить бота"
-    echo -e "  \${CYAN}5)\${NC} ⏹️ Остановка         \${CYAN}10)\${NC} 🛠️ Обновить скрипт"
-    echo -e "  \${CYAN}i)\${NC} 🔧 Установщик        \${CYAN}L)\${NC} 🗑️ Удаление"
+    echo -e "  \${CYAN}3)\${NC} 🔄 Перезапуск        \${CYAN}8)\${NC} ⚙ Редактировать .env"
+    echo -e "  \${CYAN}4)\${NC} ▶ Запуск            \${CYAN}9)\${NC} 📦 Обновить бота"
+    echo -e "  \${CYAN}5)\${NC} ⏹ Остановка         \${CYAN}10)\${NC} 🛠 Обновить скрипт"
+    echo -e "  \${CYAN}i)\${NC} 🔧 Установщик        \${CYAN}L)\${NC} 🗑 Удаление"
     echo
-    echo -e "  \${CYAN}11)\${NC} ℹ️ Версия"
+    echo -e "  \${CYAN}11)\${NC} ℹ Версия"
     echo -e "  \${CYAN}12)\${NC} 🧩 Cabinet"
     echo -e "  \${CYAN}q)\${NC} Выход"
     echo
