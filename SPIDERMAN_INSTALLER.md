@@ -65,6 +65,7 @@ curl -fsSL https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderma
   - `bot cabinet-install`
   - `bot cabinet-update`
   - `bot cabinet-status`
+  - `bot cabinet-logs` (realtime логи `cabinet_frontend`)
   - `bot cabinet-caddy`
 - Кабинет устанавливается/обновляется в `/opt/bedolaga-cabinet` из `RamaPulya/bedolaga-cabinet`, ветка `spiderman`.
 - Перед деплоем всегда пересоздаётся `docker-compose.override.yml`, чтобы `cabinet_frontend` подключался к external-сети `remnawave-network`.

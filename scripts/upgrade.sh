@@ -1095,6 +1095,22 @@ do_cabinet_status() {
     fi
 }
 
+do_cabinet_logs() {
+    preflight_action "cabinet-logs" false false false true false 64 "\$CABINET_DIR" false || return \$?
+    if [ ! -f "\$CABINET_DIR/\$CABINET_COMPOSE_FILE" ]; then
+        echo -e "\${YELLOW}Cabinet compose не найден: \$CABINET_DIR/\$CABINET_COMPOSE_FILE\${NC}"
+        return 1
+    fi
+
+    local compose_args=("-f" "\$CABINET_DIR/\$CABINET_COMPOSE_FILE")
+    if [ -f "\$CABINET_DIR/\$CABINET_OVERRIDE_FILE" ]; then
+        compose_args+=("-f" "\$CABINET_DIR/\$CABINET_OVERRIDE_FILE")
+    fi
+
+    echo -e "\${CYAN}📋 Логи cabinet_frontend (Ctrl+C для выхода)...\${NC}"
+    docker compose "\${compose_args[@]}" logs -f --tail=200 "\$CABINET_SERVICE_NAME"
+}
+
 do_cabinet_caddy_check() {
     preflight_action "cabinet-caddy-check" false false false false false 128 "\$CABINET_CADDY_DIR" false || return \$?
     echo
@@ -1151,20 +1167,22 @@ cabinet_menu() {
         clear
         echo
         echo -e "\${WHITE}Кабинет:\${NC}"
-        echo -e "  \${CYAN}1)\${NC} Установить кабинет"
-        echo -e "  \${CYAN}2)\${NC} Обновить кабинет"
-        echo -e "  \${CYAN}3)\${NC} Статус кабинета"
-        echo -e "  \${CYAN}4)\${NC} Проверка Caddy (cabinet)"
-        echo -e "  \${CYAN}5)\${NC} Пересоздать Caddy"
-        echo -e "  \${CYAN}0)\${NC} Назад"
+        echo -e "  \${CYAN}1)\${NC} 📥 Установить кабинет"
+        echo -e "  \${CYAN}2)\${NC} 🔄 Обновить кабинет"
+        echo -e "  \${CYAN}3)\${NC} 📊 Статус кабинета"
+        echo -e "  \${CYAN}4)\${NC} 📋 Логи кабинета"
+        echo -e "  \${CYAN}5)\${NC} 🌐 Проверка Caddy (cabinet)"
+        echo -e "  \${CYAN}6)\${NC} ♻️ Пересоздать Caddy"
+        echo -e "  \${CYAN}0)\${NC} ⬅️ Назад"
         echo
         read -p "Ваш выбор: " cabinet_choice
         case \$cabinet_choice in
             1) do_cabinet_install; read -p "Нажмите Enter..." ;;
             2) do_cabinet_update; read -p "Нажмите Enter..." ;;
             3) do_cabinet_status; read -p "Нажмите Enter..." ;;
-            4) do_cabinet_caddy_check; read -p "Нажмите Enter..." ;;
-            5) do_cabinet_caddy_recreate; read -p "Нажмите Enter..." ;;
+            4) do_cabinet_logs ;;
+            5) do_cabinet_caddy_check; read -p "Нажмите Enter..." ;;
+            6) do_cabinet_caddy_recreate; read -p "Нажмите Enter..." ;;
             0) return ;;
             *) echo -e "\${RED}Неверный выбор\${NC}"; sleep 1 ;;
         esac
@@ -1357,7 +1375,7 @@ show_menu() {
     echo -e "  \${CYAN}i)\${NC} 🔧 Установщик        \${CYAN}L)\${NC} 🗑️  Удаление"
     echo
     echo -e "  \${CYAN}11)\${NC} ℹ️ Версия"
-    echo -e "  \${CYAN}12)\${NC} Cabinet"
+    echo -e "  \${CYAN}12)\${NC} 🧩 Cabinet"
     echo -e "  \${CYAN}q)\${NC} Выход"
     echo
 }
@@ -1413,7 +1431,9 @@ show_help() {
     echo -e "  \${GREEN}cabinet-install\${NC}  — Установить кабинет"
     echo -e "  \${GREEN}cabinet-update\${NC}   — Обновить кабинет"
     echo -e "  \${GREEN}cabinet-status\${NC}   — Статус кабинета"
+    echo -e "  \${GREEN}cabinet-logs\${NC}     — Логи cabinet_frontend"
     echo -e "  \${GREEN}cabinet-caddy\${NC}    — Проверка Caddy для кабинета"
+    echo -e "  \${GREEN}cabinet-caddy-recreate\${NC} — Пересоздать Caddy"
     echo -e "  \${GREEN}uninstall\${NC}  — Удаление бота"
 }
 
@@ -1433,6 +1453,7 @@ case "\$1" in
     cabinet-install|cabinet-setup) do_cabinet_install ;;
     cabinet-update|cabinet-upgrade) do_cabinet_update ;;
     cabinet-status|cabinet-info) do_cabinet_status ;;
+    cabinet-logs|cabinet-log) do_cabinet_logs ;;
     cabinet-caddy) do_cabinet_caddy_check ;;
     cabinet-caddy-recreate) do_cabinet_caddy_recreate ;;
     uninstall|remove) do_uninstall ;;
