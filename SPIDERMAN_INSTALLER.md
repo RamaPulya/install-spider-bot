@@ -2,6 +2,8 @@
 
 Этот документ описывает актуальную логику установщика в репозитории `RamaPulya/bot_auto_install` (ветка `spiderman`) и отличия от исходной версии.
 
+Актуальная версия установщика: `1.4.13`.
+
 ## Быстрый запуск
 
 ```bash
@@ -72,6 +74,20 @@ curl -fsSL https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderma
 - Деплой выполняется через:
   - `docker compose up -d --build --force-recreate cabinet-frontend`
 - После деплоя скрипт проверяет фактическое подключение контейнера к `remnawave-network` (без ручного `docker network connect`).
+
+### Меню Cabinet
+
+В интерактивном меню `bot` доступен раздел `12) 🧩 Cabinet`:
+- `1) 📥 Установить кабинет`
+- `2) 🔄 Обновить кабинет`
+- `3) 📊 Статус кабинета`
+- `4) 📋 Логи кабинета` (realtime `docker compose logs -f` для `cabinet_frontend`)
+- `5) 🌐 Проверка Caddy (cabinet)`
+- `6) 🔁 Пересоздать Caddy`
+- `0) ↩ Назад`
+
+Примечание по терминалу:
+- Для более стабильного выравнивания в разных SSH/console шрифтах используются terminal-safe символы (без variation selector), чтобы избежать «съезжающих» пробелов рядом с emoji.
 
 ## Надежность обновлений (preflight + lock)
 
