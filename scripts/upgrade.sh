@@ -258,7 +258,7 @@ load_repo_branch_from_config() {
     fi
 
     local saved_branch=""
-    saved_branch="$(grep -E '^REPO_BRANCH=' "$cfg" 2>/dev/null | tail -n 1 | cut -d= -f2- | tr -d '"' | tr -d "'" | xargs || true)"
+    saved_branch="$(grep -E '^REPO_BRANCH=' "$cfg" 2>/dev/null | tail -n 1 | cut -d= -f2- | tr -d '"' | xargs || true)"
     if [ -n "$saved_branch" ]; then
         REPO_BRANCH="$(normalize_repo_branch "$saved_branch")"
     fi
@@ -664,7 +664,7 @@ load_repo_branch_from_config() {
         return 0
     fi
     local saved_branch=""
-    saved_branch="\$(grep -E '^REPO_BRANCH=' "\$INSTALL_CONFIG_FILE" 2>/dev/null | tail -n 1 | cut -d= -f2- | tr -d '\"' | tr -d \"'\" | xargs || true)"
+    saved_branch="\$(grep -E '^REPO_BRANCH=' "\$INSTALL_CONFIG_FILE" 2>/dev/null | tail -n 1 | cut -d= -f2- | tr -d '\"' | xargs || true)"
     if [ -n "\$saved_branch" ]; then
         REPO_BRANCH="\$(normalize_repo_branch "\$saved_branch")"
     fi
