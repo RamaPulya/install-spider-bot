@@ -243,6 +243,69 @@ find_install_dir() {
     fi
 }
 
+normalize_repo_branch() {
+    local branch="$1"
+    case "$branch" in
+        main|spiderman) echo "$branch" ;;
+        *) echo "spiderman" ;;
+    esac
+}
+
+load_repo_branch_from_config() {
+    local cfg="$INSTALL_DIR/.install_config"
+    if [ ! -f "$cfg" ]; then
+        return 0
+    fi
+
+    local saved_branch=""
+    saved_branch="$(grep -E '^REPO_BRANCH=' "$cfg" 2>/dev/null | tail -n 1 | cut -d= -f2- | tr -d '"' | tr -d "'" | xargs || true)"
+    if [ -n "$saved_branch" ]; then
+        REPO_BRANCH="$(normalize_repo_branch "$saved_branch")"
+    fi
+}
+
+save_repo_branch_to_config() {
+    local cfg="$INSTALL_DIR/.install_config"
+    local branch
+    branch="$(normalize_repo_branch "$REPO_BRANCH")"
+    REPO_BRANCH="$branch"
+
+    if [ -f "$cfg" ]; then
+        if grep -qE '^REPO_BRANCH=' "$cfg"; then
+            sed -i "s|^REPO_BRANCH=.*$|REPO_BRANCH=$branch|" "$cfg"
+        else
+            printf '\nREPO_BRANCH=%s\n' "$branch" >> "$cfg"
+        fi
+    else
+        printf 'REPO_BRANCH=%s\n' "$branch" > "$cfg"
+    fi
+}
+
+select_repo_branch_interactive() {
+    echo
+    echo -e "${WHITE}Ветка обновления:${NC} ${CYAN}${REPO_BRANCH}${NC}"
+    echo -e "${WHITE}Выберите ветку для обновления бота:${NC}"
+    echo -e "  ${CYAN}1)${NC} spiderman"
+    echo -e "  ${CYAN}2)${NC} main"
+    echo -e "  ${CYAN}0)${NC} Отмена"
+    echo
+    read -p "Ваш выбор [1]: " branch_choice < /dev/tty
+    branch_choice=${branch_choice:-1}
+
+    case "$branch_choice" in
+        1) REPO_BRANCH="spiderman" ;;
+        2) REPO_BRANCH="main" ;;
+        0) return 1 ;;
+        *)
+            echo -e "${YELLOW}⚠️  Неверный выбор, оставляем ветку: ${REPO_BRANCH}${NC}"
+            ;;
+    esac
+
+    save_repo_branch_to_config
+    echo -e "${GREEN}✅ Используется ветка: ${REPO_BRANCH}${NC}"
+    return 0
+}
+
 # Функция обновления бота
 upgrade_bot() {
     preflight_action "upgrade-bot" true false false true true 1024 "$INSTALL_DIR" true || return $?
@@ -253,6 +316,11 @@ upgrade_bot() {
     echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
     
     cd "$INSTALL_DIR"
+    load_repo_branch_from_config
+    if ! select_repo_branch_interactive; then
+        echo -e "${YELLOW}Обновление отменено пользователем${NC}"
+        return 0
+    fi
     
     # Создание бэкапа
     echo -e "${CYAN}💾 Создание бэкапа...${NC}"
@@ -364,7 +432,8 @@ install_bot_command() {
 INSTALL_DIR="$INSTALL_DIR"
 COMPOSE_FILE="$COMPOSE_FILE"
 INSTALLER_DIR="$INSTALL_DIR/.installer"
-REPO_BRANCH="spiderman"
+REPO_BRANCH="$REPO_BRANCH"
+INSTALL_CONFIG_FILE="$INSTALL_DIR/.install_config"
 
 CABINET_REPO_URL="https://github.com/RamaPulya/bedolaga-cabinet.git"
 CABINET_BRANCH="spiderman"
@@ -579,6 +648,66 @@ check_install_dir() {
         exit 1
     fi
     cd "\$INSTALL_DIR"
+    load_repo_branch_from_config
+}
+
+normalize_repo_branch() {
+    local branch="\$1"
+    case "\$branch" in
+        main|spiderman) echo "\$branch" ;;
+        *) echo "spiderman" ;;
+    esac
+}
+
+load_repo_branch_from_config() {
+    if [ ! -f "\$INSTALL_CONFIG_FILE" ]; then
+        return 0
+    fi
+    local saved_branch=""
+    saved_branch="\$(grep -E '^REPO_BRANCH=' "\$INSTALL_CONFIG_FILE" 2>/dev/null | tail -n 1 | cut -d= -f2- | tr -d '\"' | tr -d \"'\" | xargs || true)"
+    if [ -n "\$saved_branch" ]; then
+        REPO_BRANCH="\$(normalize_repo_branch "\$saved_branch")"
+    fi
+}
+
+save_repo_branch_to_config() {
+    local branch="\$(normalize_repo_branch "\$REPO_BRANCH")"
+    REPO_BRANCH="\$branch"
+
+    if [ -f "\$INSTALL_CONFIG_FILE" ]; then
+        if grep -qE '^REPO_BRANCH=' "\$INSTALL_CONFIG_FILE"; then
+            sed -i "s|^REPO_BRANCH=.*$|REPO_BRANCH=\$branch|" "\$INSTALL_CONFIG_FILE"
+        else
+            printf '\nREPO_BRANCH=%s\n' "\$branch" >> "\$INSTALL_CONFIG_FILE"
+        fi
+    else
+        printf 'REPO_BRANCH=%s\n' "\$branch" > "\$INSTALL_CONFIG_FILE"
+    fi
+}
+
+select_repo_branch_interactive() {
+    echo
+    echo -e "\${WHITE}Ветка обновления:\${NC} \${CYAN}\$REPO_BRANCH\${NC}"
+    echo -e "\${WHITE}Выберите ветку для обновления бота:\${NC}"
+    echo -e "  \${CYAN}1)\${NC} spiderman"
+    echo -e "  \${CYAN}2)\${NC} main"
+    echo -e "  \${CYAN}0)\${NC} Отмена"
+    echo
+    read -p "Ваш выбор [1]: " branch_choice
+    branch_choice=\${branch_choice:-1}
+
+    case "\$branch_choice" in
+        1) REPO_BRANCH="spiderman" ;;
+        2) REPO_BRANCH="main" ;;
+        0) return 1 ;;
+        *)
+            echo -e "\${YELLOW}⚠️  Неверный выбор, оставляем ветку: \$REPO_BRANCH\${NC}"
+            ;;
+    esac
+
+    save_repo_branch_to_config
+    echo -e "\${GREEN}✅ Используется ветка: \$REPO_BRANCH\${NC}"
+    return 0
 }
 
 do_logs() {
@@ -729,6 +858,7 @@ show_update_info() {
     REMOTE_DATE=\$(git log -1 "origin/\$REPO_BRANCH" --date=short --format=%ad 2>/dev/null || echo "?")
     BEHIND=\$(git rev-list --count "HEAD..origin/\$REPO_BRANCH" 2>/dev/null || echo "0")
 
+    echo -e "\${WHITE}Ветка:\${NC} \${CYAN}\$REPO_BRANCH\${NC}"
     echo -e "\${WHITE}Локальная версия:\${NC} \${CYAN}\$LOCAL_HASH\${NC} | \$LOCAL_DATE"
     echo -e "\${WHITE}Удаленная версия:\${NC} \${CYAN}\$REMOTE_HASH\${NC} | \$REMOTE_DATE"
     echo
@@ -749,11 +879,13 @@ update_menu() {
         show_update_info || true
         echo -e "\${WHITE}Выберите действие:\${NC}"
         echo -e "  \${CYAN}1)\${NC} 📦 Обновить бота"
+        echo -e "  \${CYAN}2)\${NC} 🌿 Выбрать ветку"
         echo -e "  \${CYAN}0)\${NC} Назад"
         echo
         read -p "Ваш выбор: " choice
         case \$choice in
             1) do_update; read -p "Нажмите Enter..." ;;
+            2) select_repo_branch_interactive; read -p "Нажмите Enter..." ;;
             0) return ;;
             *) echo -e "\${RED}Неверный выбор\${NC}"; sleep 1 ;;
         esac
@@ -1552,11 +1684,13 @@ fi
 
 # Определяем compose файл
 COMPOSE_FILE="docker-compose.yml"
+if [ -f "$INSTALL_DIR/.install_config" ]; then
+    source "$INSTALL_DIR/.install_config" 2>/dev/null || true
+fi
 if [ -f "$INSTALL_DIR/docker-compose.local.yml" ]; then
     COMPOSE_FILE="docker-compose.local.yml"
-elif [ -f "$INSTALL_DIR/.install_config" ]; then
-    source "$INSTALL_DIR/.install_config" 2>/dev/null
 fi
+REPO_BRANCH="$(normalize_repo_branch "${REPO_BRANCH:-spiderman}")"
 
 # Проверяем наличие external network в compose файле
 if command -v docker >/dev/null 2>&1 && grep -q "external: true" "$INSTALL_DIR/$COMPOSE_FILE" 2>/dev/null; then
