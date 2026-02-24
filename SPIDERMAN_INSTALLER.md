@@ -2,7 +2,7 @@
 
 Этот документ описывает актуальную логику установщика в репозитории `RamaPulya/install-spider-bot` (ветка `spiderman`) и отличия от исходной версии.
 
-Актуальная версия установщика: `1.4.13`.
+Актуальная версия установщика: `1.4.21`.
 
 ## Быстрый запуск
 
@@ -114,4 +114,29 @@ curl -fsSL https://raw.githubusercontent.com/RamaPulya/install-spider-bot/spider
 - Базовые коды возврата:
   - `20` — preflight не пройден;
   - `21` — lock занят (уже запущена другая операция).
+
+## Troubleshooting: пункт `10` (Обновить скрипт)
+
+Симптом:
+- в меню `bot` пункт `10` показывает `Network check failed: cannot reach GitHub repository`.
+
+Что зафиксировано:
+- `v1.4.17`: исправлен корректный выход по `Ctrl+C` (код `130`) без зацикливания на "Неверный выбор".
+- `v1.4.18`: исправлена GitHub-аутентификация для `git` через token URL mapping (`x-access-token`).
+- `v1.4.19`: добавлен fallback без токена для публичного installer-репозитория.
+- `v1.4.20`: в fallback принудительно отключается `credential.helper`, чтобы не ломаться из-за старых/невалидных сохраненных git-учеток.
+- `v1.4.21`: для кабинета добавлена авто-настройка `safe.directory`, чтобы `cabinet-update` не падал на `detected dubious ownership`.
+
+Быстрая проверка на сервере:
+```bash
+/usr/local/bin/bot version
+GIT_TERMINAL_PROMPT=0 git -c credential.helper= -c core.askPass=true \
+  ls-remote --heads https://github.com/RamaPulya/install-spider-bot.git >/dev/null; echo $?
+grep -n "INSTALLER_REPO_URL=" /usr/local/bin/bot | head -n 3
+```
+
+Ожидаемо:
+- версия установщика: `v1.4.21` или выше;
+- `ls-remote` возвращает `0`;
+- URL установщика: `https://github.com/RamaPulya/install-spider-bot.git`.
 

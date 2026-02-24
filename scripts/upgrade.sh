@@ -618,6 +618,19 @@ clone_repo_branch() {
     git clone --depth 1 --single-branch --branch "\$branch" "\$clone_url" "\$target"
 }
 
+ensure_safe_directory() {
+    local repo_dir="\$1"
+    if [ -z "\$repo_dir" ] || [ ! -d "\$repo_dir/.git" ]; then
+        return 0
+    fi
+
+    if git -C "\$repo_dir" rev-parse --git-dir >/dev/null 2>&1; then
+        return 0
+    fi
+
+    git config --global --add safe.directory "\$repo_dir" >/dev/null 2>&1 || true
+}
+
 release_lock() {
     if [ "\$LOCK_HELD" -ne 1 ]; then
         return 0
@@ -1288,6 +1301,7 @@ sync_cabinet_repo() {
     echo -e "\${CYAN}📦 Синхронизация репозитория кабинета (\$CABINET_BRANCH)...\${NC}"
 
     if [ -d "\$CABINET_DIR/.git" ]; then
+        ensure_safe_directory "\$CABINET_DIR"
         cd "\$CABINET_DIR" || return 1
         rm -f .git/index.lock .git/shallow.lock .git/FETCH_HEAD.lock .git/HEAD.lock 2>/dev/null || true
         git remote set-url origin "\$CABINET_REPO_URL" >/dev/null 2>&1 || true
@@ -1460,6 +1474,7 @@ do_cabinet_status() {
     echo -e "\${CYAN}╚═══════════════════════════════════════════════════════════════════════════════╝\${NC}"
 
     if [ -d "\$CABINET_DIR/.git" ]; then
+        ensure_safe_directory "\$CABINET_DIR"
         local branch=""
         local local_hash=""
         local local_date=""
