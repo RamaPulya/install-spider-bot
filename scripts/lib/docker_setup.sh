@@ -7,6 +7,8 @@
 # Клонирование репозитория
 clone_repository() {
     print_step "Клонирование репозитория"
+    local AUTH_REPO_URL
+    AUTH_REPO_URL="$(build_auth_repo_url "$REPO_URL")"
     
     if [ -d "$INSTALL_DIR" ]; then
         print_warning "Директория $INSTALL_DIR уже существует"
@@ -18,11 +20,11 @@ clone_repository() {
             if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
                 git remote set-url origin "$REPO_URL" 2>/dev/null || true
                 if [ -n "$REPO_BRANCH" ]; then
-                    git fetch origin "$REPO_BRANCH" 2>/dev/null || true
+                    git_with_auth fetch origin "$REPO_BRANCH" 2>/dev/null || true
                     git checkout "$REPO_BRANCH" 2>/dev/null || git checkout -b "$REPO_BRANCH" "origin/$REPO_BRANCH" 2>/dev/null || true
-                    git pull origin "$REPO_BRANCH" || true
+                    git_with_auth pull origin "$REPO_BRANCH" || true
                 else
-                    git pull origin main || true
+                    git_with_auth pull origin main || true
                 fi
             else
                 print_warning "Текущая директория не является git-репозиторием. Обновление пропущено."
@@ -32,9 +34,9 @@ clone_repository() {
     fi
     
     if [ -n "$REPO_BRANCH" ]; then
-        git clone --depth 1 --single-branch --branch "$REPO_BRANCH" "$REPO_URL" "$INSTALL_DIR"
+        git clone --depth 1 --single-branch --branch "$REPO_BRANCH" "$AUTH_REPO_URL" "$INSTALL_DIR"
     else
-        git clone "$REPO_URL" "$INSTALL_DIR"
+        git clone "$AUTH_REPO_URL" "$INSTALL_DIR"
     fi
     cd "$INSTALL_DIR"
     print_success "Репозиторий клонирован в $INSTALL_DIR"

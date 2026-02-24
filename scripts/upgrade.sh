@@ -18,7 +18,10 @@ NC='\033[0m'
 REPO_BRANCH="spiderman"
 FORCE_INSTALL_BOT_COMMAND="${FORCE_INSTALL_BOT_COMMAND:-false}"
 
-CABINET_REPO_URL="https://github.com/RamaPulya/bedolaga-cabinet.git"
+INSTALLER_REPO_URL="https://github.com/RamaPulya/install-spider-bot.git"
+INSTALLER_RAW_BASE_URL="https://raw.githubusercontent.com/RamaPulya/install-spider-bot/spiderman"
+INSTALLER_ENV_FILE="${INSTALLER_ENV_FILE:-/root/.config/bedolaga/installer.env}"
+CABINET_REPO_URL="https://github.com/RamaPulya/spidercabinet.git"
 CABINET_BRANCH="spiderman"
 CABINET_DIR="/opt/bedolaga-cabinet"
 CABINET_COMPOSE_FILE="docker-compose.yml"
@@ -47,6 +50,63 @@ log_error() {
 
 log_warn() {
     echo -e "${YELLOW}⚠️  $*${NC}" >&2
+}
+
+AUTH_ENV_LOADED=0
+
+load_installer_auth_env() {
+    if [ "$AUTH_ENV_LOADED" -eq 1 ]; then
+        return 0
+    fi
+
+    local env_file=""
+    for env_file in "${INSTALLER_ENV_FILE}" "/etc/bedolaga/installer.env"; do
+        if [ -n "$env_file" ] && [ -r "$env_file" ]; then
+            # shellcheck disable=SC1090
+            source "$env_file" || true
+            break
+        fi
+    done
+
+    AUTH_ENV_LOADED=1
+}
+
+git_with_auth() {
+    load_installer_auth_env
+    if [ -n "${GITHUB_TOKEN:-}" ]; then
+        git -c "http.https://github.com/.extraheader=Authorization: Bearer ${GITHUB_TOKEN}" "$@"
+    else
+        git "$@"
+    fi
+}
+
+curl_with_auth() {
+    load_installer_auth_env
+    if [ -n "${GITHUB_TOKEN:-}" ]; then
+        curl -fsSL -H "Authorization: Bearer ${GITHUB_TOKEN}" "$@"
+    else
+        curl -fsSL "$@"
+    fi
+}
+
+auth_clone_url() {
+    local repo_url="$1"
+    load_installer_auth_env
+
+    if [ -n "${GITHUB_TOKEN:-}" ] && [[ "$repo_url" == https://github.com/* ]]; then
+        echo "${repo_url/https:\/\/github.com\//https:\/\/${GITHUB_TOKEN}@github.com\/}"
+    else
+        echo "$repo_url"
+    fi
+}
+
+clone_repo_branch() {
+    local repo_url="$1"
+    local branch="$2"
+    local target="$3"
+    local clone_url=""
+    clone_url="$(auth_clone_url "$repo_url")"
+    git clone --depth 1 --single-branch --branch "$branch" "$clone_url" "$target"
 }
 
 release_lock() {
@@ -151,7 +211,7 @@ check_system_paths_for_root() {
 }
 
 check_network_github() {
-    if ! git ls-remote --heads https://github.com/RamaPulya/bot_auto_install.git >/dev/null 2>&1; then
+    if ! git_with_auth ls-remote --heads "$INSTALLER_REPO_URL" >/dev/null 2>&1; then
         log_error "Network check failed: cannot reach GitHub repository"
         return "$EXIT_PREFLIGHT"
     fi
@@ -342,10 +402,10 @@ upgrade_bot() {
         # Если репозиторий shallow (частая причина 'grafted' и не обновляется) — расширяем историю
         git fetch --unshallow 2>/dev/null || true
 
-        if ! git fetch origin "${REPO_BRANCH}" --prune --tags; then
+        if ! git_with_auth fetch origin "${REPO_BRANCH}" --prune --tags; then
             echo -e "${YELLOW}⚠️  Не удалось выполнить git fetch origin ${REPO_BRANCH}${NC}"
         fi
-        git fetch origin "${REPO_BRANCH}:refs/remotes/origin/${REPO_BRANCH}" --update-head-ok >/dev/null 2>&1 || true
+        git_with_auth fetch origin "${REPO_BRANCH}:refs/remotes/origin/${REPO_BRANCH}" --update-head-ok >/dev/null 2>&1 || true
 
         REMOTE_REF=""
         if git show-ref --verify --quiet "refs/remotes/origin/${REPO_BRANCH}"; then
@@ -423,7 +483,9 @@ install_bot_command() {
         return 1
     fi
 
-    if ! cat > /usr/local/bin/bot << BOTEOF
+    local bot_tmp="/usr/local/bin/.bot.tmp.$$"
+
+    if ! cat > "$bot_tmp" << BOTEOF
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════
 # 🤖 REMNAWAVE BEDOLAGA BOT - КОМАНДА УПРАВЛЕНИЯ
@@ -435,7 +497,10 @@ INSTALLER_DIR="$INSTALL_DIR/.installer"
 REPO_BRANCH="$REPO_BRANCH"
 INSTALL_CONFIG_FILE="$INSTALL_DIR/.install_config"
 
-CABINET_REPO_URL="https://github.com/RamaPulya/bedolaga-cabinet.git"
+INSTALLER_REPO_URL="https://github.com/RamaPulya/install-spider-bot.git"
+INSTALLER_RAW_BASE_URL="https://raw.githubusercontent.com/RamaPulya/install-spider-bot/spiderman"
+INSTALLER_ENV_FILE="\${INSTALLER_ENV_FILE:-/root/.config/bedolaga/installer.env}"
+CABINET_REPO_URL="https://github.com/RamaPulya/spidercabinet.git"
 CABINET_BRANCH="spiderman"
 CABINET_DIR="/opt/bedolaga-cabinet"
 CABINET_COMPOSE_FILE="docker-compose.yml"
@@ -470,6 +535,63 @@ fi
 
 bot_log_error() {
     echo -e "\${RED}❌ \$*\${NC}" >&2
+}
+
+AUTH_ENV_LOADED=0
+
+load_installer_auth_env() {
+    if [ "\$AUTH_ENV_LOADED" -eq 1 ]; then
+        return 0
+    fi
+
+    local env_file=""
+    for env_file in "\${INSTALLER_ENV_FILE}" "/etc/bedolaga/installer.env"; do
+        if [ -n "\$env_file" ] && [ -r "\$env_file" ]; then
+            # shellcheck disable=SC1090
+            source "\$env_file" || true
+            break
+        fi
+    done
+
+    AUTH_ENV_LOADED=1
+}
+
+git_with_auth() {
+    load_installer_auth_env
+    if [ -n "\${GITHUB_TOKEN:-}" ]; then
+        git -c "http.https://github.com/.extraheader=Authorization: Bearer \${GITHUB_TOKEN}" "\$@"
+    else
+        git "\$@"
+    fi
+}
+
+curl_with_auth() {
+    load_installer_auth_env
+    if [ -n "\${GITHUB_TOKEN:-}" ]; then
+        curl -fsSL -H "Authorization: Bearer \${GITHUB_TOKEN}" "\$@"
+    else
+        curl -fsSL "\$@"
+    fi
+}
+
+auth_clone_url() {
+    local repo_url="\$1"
+    load_installer_auth_env
+
+    if [ -n "\${GITHUB_TOKEN:-}" ] && [[ "\$repo_url" == https://github.com/* ]]; then
+        echo "\${repo_url/https:\/\/github.com\//https:\/\/\${GITHUB_TOKEN}@github.com\/}"
+    else
+        echo "\$repo_url"
+    fi
+}
+
+clone_repo_branch() {
+    local repo_url="\$1"
+    local branch="\$2"
+    local target="\$3"
+    local clone_url=""
+    clone_url="\$(auth_clone_url "\$repo_url")"
+    git clone --depth 1 --single-branch --branch "\$branch" "\$clone_url" "\$target"
 }
 
 release_lock() {
@@ -574,7 +696,7 @@ check_system_paths_for_root() {
 }
 
 check_network_github() {
-    if ! git ls-remote --heads https://github.com/RamaPulya/bot_auto_install.git >/dev/null 2>&1; then
+    if ! git_with_auth ls-remote --heads "\$INSTALLER_REPO_URL" >/dev/null 2>&1; then
         bot_log_error "Network check failed: cannot reach GitHub repository"
         return "\$EXIT_PREFLIGHT"
     fi
@@ -800,10 +922,10 @@ do_update() {
     echo -e "\${CYAN}📥 Обновление кода (ветка: \$REPO_BRANCH)...\${NC}"
     if [ -d ".git" ]; then
         git fetch --unshallow 2>/dev/null || true
-        if ! git fetch origin "\$REPO_BRANCH" --prune --tags; then
+        if ! git_with_auth fetch origin "\$REPO_BRANCH" --prune --tags; then
             echo -e "\${YELLOW}⚠️  Не удалось получить обновления из GitHub\${NC}"
         fi
-        git fetch origin "\$REPO_BRANCH:refs/remotes/origin/\$REPO_BRANCH" --update-head-ok >/dev/null 2>&1 || true
+        git_with_auth fetch origin "\$REPO_BRANCH:refs/remotes/origin/\$REPO_BRANCH" --update-head-ok >/dev/null 2>&1 || true
         TARGET_REF=""
         if git show-ref --verify --quiet "refs/remotes/origin/\$REPO_BRANCH"; then
             TARGET_REF="origin/\$REPO_BRANCH"
@@ -848,7 +970,7 @@ show_update_info() {
         return 1
     fi
 
-    if ! git fetch origin "\$REPO_BRANCH" >/dev/null 2>&1; then
+    if ! git_with_auth fetch origin "\$REPO_BRANCH" >/dev/null 2>&1; then
         echo -e "\${YELLOW}⚠️  Не удалось получить обновления из GitHub\${NC}"
     fi
 
@@ -902,8 +1024,16 @@ update_installer() {
     
     echo -e "\${CYAN}📥 Скачивание скриптов установщика...\${NC}"
     
+    local TEMP_DIR=""
+    local NEW_INSTALLER_DIR=""
+    local BACKUP_INSTALLER_DIR=""
+    local restore_backup=false
+    local bot_recreate_ok=false
+
     TEMP_DIR=\$(mktemp -d)
-    git clone --depth 1 --single-branch --branch spiderman https://github.com/RamaPulya/bot_auto_install.git "\$TEMP_DIR" 2>/dev/null
+    NEW_INSTALLER_DIR="\$INSTALL_DIR/.installer.new.\$\$"
+    BACKUP_INSTALLER_DIR="\$INSTALL_DIR/.installer.backup.\$\$"
+    clone_repo_branch "\$INSTALLER_REPO_URL" "spiderman" "\$TEMP_DIR" 2>/dev/null
     
     if [ -d "\$TEMP_DIR/scripts" ]; then
         if [ ! -d "\$INSTALL_DIR" ] || [ ! -w "\$INSTALL_DIR" ]; then
@@ -912,25 +1042,59 @@ update_installer() {
             return 1
         fi
 
-        rm -rf "\$INSTALLER_DIR" 2>/dev/null || true
-        if ! cp -r "\$TEMP_DIR/scripts" "\$INSTALLER_DIR"; then
-            echo -e "\${RED}❌ Не удалось обновить скрипты установщика (ошибка записи в \$INSTALLER_DIR)\${NC}"
+        rm -rf "\$NEW_INSTALLER_DIR" "\$BACKUP_INSTALLER_DIR" 2>/dev/null || true
+        if ! cp -r "\$TEMP_DIR/scripts" "\$NEW_INSTALLER_DIR"; then
+            echo -e "\${RED}❌ Не удалось подготовить новую версию скриптов (\$NEW_INSTALLER_DIR)\${NC}"
             rm -rf "\$TEMP_DIR"
             return 1
         fi
-        chmod +x "\$INSTALLER_DIR"/*.sh 2>/dev/null
-        chmod +x "\$INSTALLER_DIR"/lib/*.sh 2>/dev/null
+        chmod +x "\$NEW_INSTALLER_DIR"/*.sh 2>/dev/null
+        chmod +x "\$NEW_INSTALLER_DIR"/lib/*.sh 2>/dev/null
+        if ! bash -n "\$NEW_INSTALLER_DIR/upgrade.sh"; then
+            echo -e "\${RED}❌ Синтаксическая ошибка в новой версии upgrade.sh\${NC}"
+            rm -rf "\$NEW_INSTALLER_DIR" "\$TEMP_DIR"
+            return 1
+        fi
+
+        if [ -d "\$INSTALLER_DIR" ]; then
+            mv "\$INSTALLER_DIR" "\$BACKUP_INSTALLER_DIR" || {
+                echo -e "\${RED}❌ Не удалось создать backup текущего установщика\${NC}"
+                rm -rf "\$NEW_INSTALLER_DIR" "\$TEMP_DIR"
+                return 1
+            }
+            restore_backup=true
+        fi
+
+        if ! mv "\$NEW_INSTALLER_DIR" "\$INSTALLER_DIR"; then
+            echo -e "\${RED}❌ Не удалось установить новую версию скриптов\${NC}"
+            if [ "\$restore_backup" = "true" ] && [ -d "\$BACKUP_INSTALLER_DIR" ]; then
+                mv "\$BACKUP_INSTALLER_DIR" "\$INSTALLER_DIR" 2>/dev/null || true
+            fi
+            rm -rf "\$TEMP_DIR" "\$NEW_INSTALLER_DIR"
+            return 1
+        fi
+        rm -rf "\$BACKUP_INSTALLER_DIR" 2>/dev/null || true
         
         VERSION=\$(cat "\$INSTALLER_DIR/VERSION" 2>/dev/null || echo "?")
         echo -e "\${GREEN}✅ Скрипты установщика обновлены (v\$VERSION)\${NC}"
 
         # Автообновление команды bot на новую версию скриптов
         if [ -x "\$INSTALLER_DIR/upgrade.sh" ]; then
-            if BOT_SKIP_LOCK=true FORCE_INSTALL_BOT_COMMAND=true bash "\$INSTALLER_DIR/upgrade.sh" --install-bot-command --force >/dev/null 2>&1; then
+            if BOT_SKIP_LOCK=true FORCE_INSTALL_BOT_COMMAND=true bash "\$INSTALLER_DIR/upgrade.sh" --install-bot-command --force; then
                 echo -e "\${GREEN}✅ Команда bot пересоздана автоматически\${NC}"
+                bot_recreate_ok=true
             else
                 echo -e "\${YELLOW}⚠️  Не удалось пересоздать команду bot автоматически\${NC}"
                 echo -e "\${YELLOW}   Выполните: bash \$INSTALLER_DIR/upgrade.sh --install-bot-command --force\${NC}"
+            fi
+        fi
+
+        hash -r 2>/dev/null || true
+        if [ "\$bot_recreate_ok" = "true" ] && [ -x "/usr/local/bin/bot" ] && bash -n /usr/local/bin/bot; then
+            if bash /usr/local/bin/bot help >/dev/null 2>&1; then
+                echo -e "\${GREEN}✅ Проверка bot пройдена (help)\${NC}"
+            else
+                echo -e "\${YELLOW}⚠️  Команда bot создана, но проверка help не пройдена\${NC}"
             fi
         fi
     else
@@ -1058,6 +1222,36 @@ networks:
 CABINETOVR
 }
 
+cabinet_prompt_yes_no() {
+    local prompt="\$1"
+    local default_yes="\${2:-false}"
+    local answer=""
+
+    if [ "\$default_yes" = "true" ]; then
+        read -r -p "\$prompt [Y/n]: " answer
+        answer=\${answer:-y}
+    else
+        read -r -p "\$prompt [y/N]: " answer
+        answer=\${answer:-n}
+    fi
+
+    [[ "\$answer" =~ ^[Yy]\$ ]]
+}
+
+run_cabinet_compose() {
+    if [ ! -f "\$CABINET_DIR/\$CABINET_COMPOSE_FILE" ]; then
+        echo -e "\${YELLOW}Cabinet compose не найден: \$CABINET_DIR/\$CABINET_COMPOSE_FILE\${NC}"
+        return 1
+    fi
+
+    local compose_args=("-f" "\$CABINET_DIR/\$CABINET_COMPOSE_FILE")
+    if [ -f "\$CABINET_DIR/\$CABINET_OVERRIDE_FILE" ]; then
+        compose_args+=("-f" "\$CABINET_DIR/\$CABINET_OVERRIDE_FILE")
+    fi
+
+    docker compose "\${compose_args[@]}" "\$@"
+}
+
 sync_cabinet_repo() {
     echo -e "\${CYAN}📦 Синхронизация репозитория кабинета (\$CABINET_BRANCH)...\${NC}"
 
@@ -1065,7 +1259,7 @@ sync_cabinet_repo() {
         cd "\$CABINET_DIR" || return 1
         rm -f .git/index.lock .git/shallow.lock .git/FETCH_HEAD.lock .git/HEAD.lock 2>/dev/null || true
         git remote set-url origin "\$CABINET_REPO_URL" >/dev/null 2>&1 || true
-        if ! git fetch --prune origin; then
+        if ! git_with_auth fetch --prune origin; then
             echo -e "\${RED}❌ Не удалось выполнить git fetch для кабинета\${NC}"
             return 1
         fi
@@ -1084,7 +1278,9 @@ sync_cabinet_repo() {
         return 1
     else
         mkdir -p "\$(dirname "\$CABINET_DIR")"
-        if ! git clone --single-branch --branch "\$CABINET_BRANCH" "\$CABINET_REPO_URL" "\$CABINET_DIR"; then
+        local cabinet_clone_url=""
+        cabinet_clone_url="\$(auth_clone_url "\$CABINET_REPO_URL")"
+        if ! git clone --single-branch --branch "\$CABINET_BRANCH" "\$cabinet_clone_url" "\$CABINET_DIR"; then
             echo -e "\${RED}❌ Не удалось клонировать репозиторий кабинета\${NC}"
             return 1
         fi
@@ -1096,7 +1292,7 @@ sync_cabinet_repo() {
 resolve_cabinet_container_id() {
     local container_id=""
     if [ -f "\$CABINET_DIR/\$CABINET_COMPOSE_FILE" ]; then
-        container_id=\$(docker compose -f "\$CABINET_DIR/\$CABINET_COMPOSE_FILE" -f "\$CABINET_DIR/\$CABINET_OVERRIDE_FILE" ps -q "\$CABINET_SERVICE_NAME" 2>/dev/null | head -n 1)
+        container_id=\$(run_cabinet_compose ps -q "\$CABINET_SERVICE_NAME" 2>/dev/null | head -n 1)
     fi
     if [ -z "\$container_id" ]; then
         container_id=\$(docker ps -aq --filter "name=^cabinet_frontend\$" | head -n 1)
@@ -1116,16 +1312,11 @@ cabinet_connected_to_network() {
 }
 
 deploy_cabinet_frontend() {
-    if [ ! -f "\$CABINET_DIR/\$CABINET_COMPOSE_FILE" ]; then
-        echo -e "\${RED}❌ Не найден \$CABINET_DIR/\$CABINET_COMPOSE_FILE\${NC}"
-        return 1
-    fi
-
     ensure_cabinet_network
     ensure_cabinet_override
 
     echo -e "\${CYAN}🐳 Запуск cabinet-frontend...\${NC}"
-    if ! docker compose -f "\$CABINET_DIR/\$CABINET_COMPOSE_FILE" -f "\$CABINET_DIR/\$CABINET_OVERRIDE_FILE" up -d --build --force-recreate "\$CABINET_SERVICE_NAME"; then
+    if ! run_cabinet_compose up -d --build --force-recreate "\$CABINET_SERVICE_NAME"; then
         echo -e "\${RED}❌ Не удалось запустить cabinet-frontend\${NC}"
         return 1
     fi
@@ -1174,6 +1365,61 @@ do_cabinet_update() {
     do_cabinet_status
 }
 
+do_cabinet_stop() {
+    preflight_action "cabinet-stop" true false false true false 64 "\$CABINET_DIR" false || return \$?
+    echo
+    echo -e "\${CYAN}⏹️  Остановка cabinet-frontend...\${NC}"
+    if run_cabinet_compose stop "\$CABINET_SERVICE_NAME"; then
+        echo -e "\${GREEN}✅ cabinet-frontend остановлен\${NC}"
+    else
+        echo -e "\${RED}❌ Не удалось остановить cabinet-frontend\${NC}"
+        return 1
+    fi
+}
+
+do_cabinet_start() {
+    preflight_action "cabinet-start" true false true true false 128 "\$CABINET_DIR" true || return \$?
+    ensure_cabinet_network
+    ensure_cabinet_override
+    echo
+    echo -e "\${CYAN}▶️  Запуск cabinet-frontend (без пересборки)...\${NC}"
+    if ! run_cabinet_compose up -d "\$CABINET_SERVICE_NAME"; then
+        echo -e "\${RED}❌ Не удалось запустить cabinet-frontend\${NC}"
+        return 1
+    fi
+    do_cabinet_status
+}
+
+do_cabinet_restart() {
+    preflight_action "cabinet-restart" true false true true false 128 "\$CABINET_DIR" true || return \$?
+    ensure_cabinet_network
+    ensure_cabinet_override
+    echo
+    echo -e "\${CYAN}🔄 Перезапуск cabinet-frontend (без пересборки)...\${NC}"
+    if ! run_cabinet_compose up -d --force-recreate "\$CABINET_SERVICE_NAME"; then
+        echo -e "\${RED}❌ Не удалось перезапустить cabinet-frontend\${NC}"
+        return 1
+    fi
+    do_cabinet_status
+}
+
+do_cabinet_env_edit() {
+    preflight_action "cabinet-env-edit" true false true false false 64 "\$CABINET_DIR/.env" true || return \$?
+    mkdir -p "\$CABINET_DIR"
+    local env_file="\$CABINET_DIR/.env"
+    touch "\$env_file"
+    chmod 600 "\$env_file" 2>/dev/null || true
+
+    echo -e "\${CYAN}✏️  Редактирование \$env_file\${NC}"
+    \${EDITOR:-nano} "\$env_file"
+
+    if cabinet_prompt_yes_no "Перезапустить cabinet-frontend для применения .env?" "true"; then
+        do_cabinet_restart
+    else
+        echo -e "\${YELLOW}Перезапуск пропущен. Выполните позже: bot cabinet-restart\${NC}"
+    fi
+}
+
 do_cabinet_status() {
     preflight_action "cabinet-status" false false false true true 128 "\$CABINET_DIR" false || return \$?
     echo
@@ -1191,7 +1437,7 @@ do_cabinet_status() {
         local_date=\$(git -C "\$CABINET_DIR" log -1 --date=short --format=%ad 2>/dev/null || echo "?")
         [ -n "\$(git -C "\$CABINET_DIR" status --porcelain 2>/dev/null)" ] && dirty="dirty"
 
-        git -C "\$CABINET_DIR" fetch --prune origin >/dev/null 2>&1 || true
+        git_with_auth -C "\$CABINET_DIR" fetch --prune origin >/dev/null 2>&1 || true
         local remote_hash=""
         local behind="0"
         remote_hash=\$(git -C "\$CABINET_DIR" rev-parse --short "origin/\$CABINET_BRANCH" 2>/dev/null || echo "?")
@@ -1215,7 +1461,7 @@ do_cabinet_status() {
     fi
 
     if [ -f "\$CABINET_DIR/\$CABINET_COMPOSE_FILE" ]; then
-        docker compose -f "\$CABINET_DIR/\$CABINET_COMPOSE_FILE" -f "\$CABINET_DIR/\$CABINET_OVERRIDE_FILE" ps "\$CABINET_SERVICE_NAME" 2>/dev/null || true
+        run_cabinet_compose ps "\$CABINET_SERVICE_NAME" 2>/dev/null || true
     fi
 
     local container_id=""
@@ -1229,18 +1475,9 @@ do_cabinet_status() {
 
 do_cabinet_logs() {
     preflight_action "cabinet-logs" false false false true false 64 "\$CABINET_DIR" false || return \$?
-    if [ ! -f "\$CABINET_DIR/\$CABINET_COMPOSE_FILE" ]; then
-        echo -e "\${YELLOW}Cabinet compose не найден: \$CABINET_DIR/\$CABINET_COMPOSE_FILE\${NC}"
-        return 1
-    fi
-
-    local compose_args=("-f" "\$CABINET_DIR/\$CABINET_COMPOSE_FILE")
-    if [ -f "\$CABINET_DIR/\$CABINET_OVERRIDE_FILE" ]; then
-        compose_args+=("-f" "\$CABINET_DIR/\$CABINET_OVERRIDE_FILE")
-    fi
 
     echo -e "\${CYAN}📋 Логи cabinet_frontend (Ctrl+C для выхода)...\${NC}"
-    docker compose "\${compose_args[@]}" logs -f --tail=200 "\$CABINET_SERVICE_NAME"
+    run_cabinet_compose logs -f --tail=200 "\$CABINET_SERVICE_NAME"
 }
 
 do_cabinet_caddy_check() {
@@ -1278,6 +1515,27 @@ do_cabinet_caddy_check() {
     echo -e "\${WHITE}Подсказка:\${NC} cd \$CABINET_CADDY_DIR && docker compose up -d --force-recreate caddy"
 }
 
+do_cabinet_caddy_edit() {
+    preflight_action "cabinet-caddy-edit" true false true false false 64 "\$CABINET_CADDY_DIR/Caddyfile" true || return \$?
+
+    if [ ! -d "\$CABINET_CADDY_DIR" ]; then
+        echo -e "\${YELLOW}Директория Caddy не найдена: \$CABINET_CADDY_DIR\${NC}"
+        return 1
+    fi
+
+    local caddy_file="\$CABINET_CADDY_DIR/Caddyfile"
+    touch "\$caddy_file"
+
+    echo -e "\${CYAN}✏️  Редактирование \$caddy_file\${NC}"
+    \${EDITOR:-nano} "\$caddy_file"
+
+    if cabinet_prompt_yes_no "Пересоздать Caddy сейчас?" "true"; then
+        do_cabinet_caddy_recreate
+    else
+        echo -e "\${YELLOW}Пересоздание пропущено. Выполните позже: bot cabinet-caddy-recreate\${NC}"
+    fi
+}
+
 do_cabinet_caddy_recreate() {
     preflight_action "cabinet-caddy-recreate" true false false true false 128 "\$CABINET_CADDY_DIR" true || return \$?
     if [ ! -f "\$CABINET_CADDY_DIR/docker-compose.yml" ]; then
@@ -1303,8 +1561,13 @@ cabinet_menu() {
         echo -e "  \${CYAN}2)\${NC} 🔄 Обновить кабинет"
         echo -e "  \${CYAN}3)\${NC} 📊 Статус кабинета"
         echo -e "  \${CYAN}4)\${NC} 📋 Логи кабинета"
-        echo -e "  \${CYAN}5)\${NC} 🌐 Проверка Caddy (cabinet)"
-        echo -e "  \${CYAN}6)\${NC} 🔁 Пересоздать Caddy"
+        echo -e "  \${CYAN}5)\${NC} ⏹️  Остановить кабинет"
+        echo -e "  \${CYAN}6)\${NC} ▶️  Запустить кабинет"
+        echo -e "  \${CYAN}7)\${NC} 🔄 Перезапустить кабинет"
+        echo -e "  \${CYAN}8)\${NC} ⚙ Редактировать .env кабинета"
+        echo -e "  \${CYAN}9)\${NC} 🌐 Проверка Caddy (cabinet)"
+        echo -e "  \${CYAN}10)\${NC} 📝 Редактировать Caddyfile"
+        echo -e "  \${CYAN}11)\${NC} 🔁 Пересоздать Caddy"
         echo -e "  \${CYAN}0)\${NC} ↩ Назад"
         echo
         read -p "Ваш выбор: " cabinet_choice
@@ -1313,8 +1576,13 @@ cabinet_menu() {
             2) do_cabinet_update; read -p "Нажмите Enter..." ;;
             3) do_cabinet_status; read -p "Нажмите Enter..." ;;
             4) do_cabinet_logs ;;
-            5) do_cabinet_caddy_check; read -p "Нажмите Enter..." ;;
-            6) do_cabinet_caddy_recreate; read -p "Нажмите Enter..." ;;
+            5) do_cabinet_stop; read -p "Нажмите Enter..." ;;
+            6) do_cabinet_start; read -p "Нажмите Enter..." ;;
+            7) do_cabinet_restart; read -p "Нажмите Enter..." ;;
+            8) do_cabinet_env_edit; read -p "Нажмите Enter..." ;;
+            9) do_cabinet_caddy_check; read -p "Нажмите Enter..." ;;
+            10) do_cabinet_caddy_edit; read -p "Нажмите Enter..." ;;
+            11) do_cabinet_caddy_recreate; read -p "Нажмите Enter..." ;;
             0) return ;;
             *) echo -e "\${RED}Неверный выбор\${NC}"; sleep 1 ;;
         esac
@@ -1351,7 +1619,7 @@ do_install() {
             2)
                 echo -e "\${CYAN}📥 Обновление скриптов...\${NC}"
                 local TEMP_DIR=\$(mktemp -d)
-                git clone --depth 1 --single-branch --branch spiderman https://github.com/RamaPulya/bot_auto_install.git "\$TEMP_DIR" 2>/dev/null
+                clone_repo_branch "\$INSTALLER_REPO_URL" "spiderman" "\$TEMP_DIR" 2>/dev/null
                 if [ -d "\$TEMP_DIR/scripts" ]; then
                     rm -rf "\$INSTALLER_DIR"
                     cp -r "\$TEMP_DIR/scripts" "\$INSTALLER_DIR"
@@ -1364,7 +1632,7 @@ do_install() {
                 ;;
             3)
                 echo -e "\${CYAN}📥 Скачивание с GitHub...\${NC}"
-                curl -fsSL https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderman/scripts/quick-install.sh | sudo bash
+                curl_with_auth "\$INSTALLER_RAW_BASE_URL/scripts/quick-install.sh" | sudo bash
                 ;;
             0)
                 return
@@ -1383,12 +1651,12 @@ do_install() {
         
         case \$choice in
             1)
-                curl -fsSL https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderman/scripts/quick-install.sh | sudo bash
+                curl_with_auth "\$INSTALLER_RAW_BASE_URL/scripts/quick-install.sh" | sudo bash
                 ;;
             2)
                 mkdir -p "\$INSTALLER_DIR"
                 local TEMP_DIR=\$(mktemp -d)
-                git clone --depth 1 --single-branch --branch spiderman https://github.com/RamaPulya/bot_auto_install.git "\$TEMP_DIR" 2>/dev/null
+                clone_repo_branch "\$INSTALLER_REPO_URL" "spiderman" "\$TEMP_DIR" 2>/dev/null
                 if [ -d "\$TEMP_DIR/scripts" ]; then
                     cp -r "\$TEMP_DIR/scripts"/* "\$INSTALLER_DIR/"
                     chmod +x "\$INSTALLER_DIR"/*.sh 2>/dev/null
@@ -1462,7 +1730,7 @@ show_version() {
     local BEHIND="?"
 
     if [ -d ".git" ]; then
-        git fetch origin "\$REPO_BRANCH" >/dev/null 2>&1 || true
+        git_with_auth fetch origin "\$REPO_BRANCH" >/dev/null 2>&1 || true
         LOCAL_HASH=\$(git rev-parse --short HEAD 2>/dev/null || echo "?")
         LOCAL_DATE=\$(git log -1 --date=short --format=%ad 2>/dev/null || echo "?")
         REMOTE_HASH=\$(git rev-parse --short "origin/\$REPO_BRANCH" 2>/dev/null || echo "?")
@@ -1564,7 +1832,12 @@ show_help() {
     echo -e "  \${GREEN}cabinet-update\${NC}   — Обновить кабинет"
     echo -e "  \${GREEN}cabinet-status\${NC}   — Статус кабинета"
     echo -e "  \${GREEN}cabinet-logs\${NC}     — Логи cabinet_frontend"
+    echo -e "  \${GREEN}cabinet-stop\${NC}     — Остановить кабинет"
+    echo -e "  \${GREEN}cabinet-start\${NC}    — Запустить кабинет"
+    echo -e "  \${GREEN}cabinet-restart\${NC}  — Перезапустить кабинет"
+    echo -e "  \${GREEN}cabinet-env\${NC}      — Редактировать .env кабинета"
     echo -e "  \${GREEN}cabinet-caddy\${NC}    — Проверка Caddy для кабинета"
+    echo -e "  \${GREEN}cabinet-caddy-edit\${NC} — Редактировать Caddyfile кабинета"
     echo -e "  \${GREEN}cabinet-caddy-recreate\${NC} — Пересоздать Caddy"
     echo -e "  \${GREEN}uninstall\${NC}  — Удаление бота"
 }
@@ -1587,7 +1860,12 @@ case "\$CMD" in
     cabinet-update|cabinet-upgrade) do_cabinet_update ;;
     cabinet-status|cabinet-info) do_cabinet_status ;;
     cabinet-logs|cabinet-log) do_cabinet_logs ;;
+    cabinet-stop) do_cabinet_stop ;;
+    cabinet-start) do_cabinet_start ;;
+    cabinet-restart) do_cabinet_restart ;;
+    cabinet-env|cabinet-config) do_cabinet_env_edit ;;
     cabinet-caddy) do_cabinet_caddy_check ;;
+    cabinet-caddy-edit) do_cabinet_caddy_edit ;;
     cabinet-caddy-recreate) do_cabinet_caddy_recreate ;;
     uninstall|remove) do_uninstall ;;
     help|--help|-h) show_help ;;
@@ -1602,19 +1880,39 @@ esac
 BOTEOF
 
     then
-        echo -e "${RED}❌ Не удалось записать /usr/local/bin/bot${NC}"
+        echo -e "${RED}❌ Не удалось записать временный скрипт: $bot_tmp${NC}"
+        rm -f "$bot_tmp" 2>/dev/null || true
         return 1
     fi
 
-    if ! chmod +x /usr/local/bin/bot; then
-        echo -e "${RED}❌ Не удалось выдать права на /usr/local/bin/bot${NC}"
+    if ! bash -n "$bot_tmp"; then
+        echo -e "${RED}❌ Синтаксическая ошибка в сгенерированной команде bot${NC}"
+        rm -f "$bot_tmp" 2>/dev/null || true
+        return 1
+    fi
+
+    if ! chmod +x "$bot_tmp"; then
+        echo -e "${RED}❌ Не удалось выдать права на $bot_tmp${NC}"
+        rm -f "$bot_tmp" 2>/dev/null || true
+        return 1
+    fi
+
+    if ! mv -f "$bot_tmp" /usr/local/bin/bot; then
+        echo -e "${RED}❌ Не удалось обновить /usr/local/bin/bot${NC}"
+        rm -f "$bot_tmp" 2>/dev/null || true
         return 1
     fi
     if [ -d "/usr/bin" ]; then
         ln -sfn /usr/local/bin/bot /usr/bin/bot 2>/dev/null || true
     fi
+    hash -r 2>/dev/null || true
     
-    echo -e "${GREEN}✅ Команда 'bot' установлена!${NC}"
+    if bash /usr/local/bin/bot help >/dev/null 2>&1; then
+        echo -e "${GREEN}✅ Команда 'bot' установлена и проверена${NC}"
+    else
+        echo -e "${YELLOW}⚠️  Команда 'bot' установлена, но проверка запуска не пройдена${NC}"
+        echo -e "${YELLOW}   Проверьте: bash /usr/local/bin/bot help${NC}"
+    fi
     echo
     echo -e "${WHITE}Теперь доступно:${NC}"
     echo -e "  ${CYAN}bot${NC}        — интерактивное меню"
@@ -1633,8 +1931,16 @@ update_installer() {
     
     echo -e "${CYAN}📥 Скачивание скриптов установщика...${NC}"
     
+    local TEMP_DIR=""
+    local NEW_INSTALLER_DIR=""
+    local BACKUP_INSTALLER_DIR=""
+    local restore_backup=false
+    local bot_recreate_ok=false
+
     TEMP_DIR=$(mktemp -d)
-    git clone --depth 1 --single-branch --branch spiderman https://github.com/RamaPulya/bot_auto_install.git "$TEMP_DIR" 2>/dev/null
+    NEW_INSTALLER_DIR="$INSTALL_DIR/.installer.new.$$"
+    BACKUP_INSTALLER_DIR="$INSTALL_DIR/.installer.backup.$$"
+    clone_repo_branch "$INSTALLER_REPO_URL" "spiderman" "$TEMP_DIR" 2>/dev/null
     
     if [ -d "$TEMP_DIR/scripts" ]; then
         if [ ! -d "$INSTALL_DIR" ] || [ ! -w "$INSTALL_DIR" ]; then
@@ -1643,23 +1949,56 @@ update_installer() {
             return 1
         fi
 
-        rm -rf "$INSTALLER_DIR" 2>/dev/null || true
-        if ! cp -r "$TEMP_DIR/scripts" "$INSTALLER_DIR"; then
-            echo -e "${RED}❌ Не удалось обновить скрипты установщика (ошибка записи в $INSTALLER_DIR)${NC}"
+        rm -rf "$NEW_INSTALLER_DIR" "$BACKUP_INSTALLER_DIR" 2>/dev/null || true
+        if ! cp -r "$TEMP_DIR/scripts" "$NEW_INSTALLER_DIR"; then
+            echo -e "${RED}❌ Не удалось подготовить новую версию скриптов ($NEW_INSTALLER_DIR)${NC}"
             rm -rf "$TEMP_DIR"
             return 1
         fi
-        chmod +x "$INSTALLER_DIR"/*.sh 2>/dev/null
-        chmod +x "$INSTALLER_DIR"/lib/*.sh 2>/dev/null
+        chmod +x "$NEW_INSTALLER_DIR"/*.sh 2>/dev/null
+        chmod +x "$NEW_INSTALLER_DIR"/lib/*.sh 2>/dev/null
+        if ! bash -n "$NEW_INSTALLER_DIR/upgrade.sh"; then
+            echo -e "${RED}❌ Синтаксическая ошибка в новой версии upgrade.sh${NC}"
+            rm -rf "$NEW_INSTALLER_DIR" "$TEMP_DIR"
+            return 1
+        fi
+
+        if [ -d "$INSTALLER_DIR" ]; then
+            mv "$INSTALLER_DIR" "$BACKUP_INSTALLER_DIR" || {
+                echo -e "${RED}❌ Не удалось создать backup текущего установщика${NC}"
+                rm -rf "$NEW_INSTALLER_DIR" "$TEMP_DIR"
+                return 1
+            }
+            restore_backup=true
+        fi
+
+        if ! mv "$NEW_INSTALLER_DIR" "$INSTALLER_DIR"; then
+            echo -e "${RED}❌ Не удалось установить новую версию скриптов${NC}"
+            if [ "$restore_backup" = "true" ] && [ -d "$BACKUP_INSTALLER_DIR" ]; then
+                mv "$BACKUP_INSTALLER_DIR" "$INSTALLER_DIR" 2>/dev/null || true
+            fi
+            rm -rf "$TEMP_DIR" "$NEW_INSTALLER_DIR"
+            return 1
+        fi
+        rm -rf "$BACKUP_INSTALLER_DIR" 2>/dev/null || true
         
         VERSION=$(cat "$INSTALLER_DIR/VERSION" 2>/dev/null || echo "?")
         echo -e "${GREEN}✅ Скрипты установщика обновлены (v$VERSION)${NC}"
         if [ -x "$INSTALLER_DIR/upgrade.sh" ]; then
-            if BOT_SKIP_LOCK=true FORCE_INSTALL_BOT_COMMAND=true bash "$INSTALLER_DIR/upgrade.sh" --install-bot-command --force >/dev/null 2>&1; then
+            if BOT_SKIP_LOCK=true FORCE_INSTALL_BOT_COMMAND=true bash "$INSTALLER_DIR/upgrade.sh" --install-bot-command --force; then
                 echo -e "${GREEN}✅ Команда bot пересоздана автоматически${NC}"
+                bot_recreate_ok=true
             else
                 echo -e "${YELLOW}⚠️  Не удалось пересоздать команду bot автоматически${NC}"
                 echo -e "${YELLOW}   Выполните: bash $INSTALLER_DIR/upgrade.sh --install-bot-command --force${NC}"
+            fi
+        fi
+        hash -r 2>/dev/null || true
+        if [ "$bot_recreate_ok" = "true" ] && [ -x "/usr/local/bin/bot" ] && bash -n /usr/local/bin/bot; then
+            if bash /usr/local/bin/bot help >/dev/null 2>&1; then
+                echo -e "${GREEN}✅ Проверка bot пройдена (help)${NC}"
+            else
+                echo -e "${YELLOW}⚠️  Команда bot создана, но проверка help не пройдена${NC}"
             fi
         fi
     else
@@ -1772,3 +2111,4 @@ echo -e "${GREEN}╚════════════════════
 echo
 echo -e "${WHITE}Используйте команду ${CYAN}bot${NC} для управления ботом${NC}"
 echo
+

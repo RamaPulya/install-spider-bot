@@ -5,7 +5,7 @@
 # ===============================================
 # Версия: 1.2.0
 # Автор: Bedolaga Team
-# GitHub: https://github.com/RamaPulya/remnawave-bedolaga-telegram-bot
+# GitHub: https://github.com/RamaPulya/spiderbot
 # 
 # Изменения v1.2.0:
 # - Модульная архитектура (разделение на файлы)
@@ -20,7 +20,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # URL репозитория бота
-REPO_URL="https://github.com/RamaPulya/remnawave-bedolaga-telegram-bot.git"
+REPO_URL="https://github.com/RamaPulya/spiderbot.git"
 REPO_BRANCH="spiderman"
 
 # ===============================================
@@ -83,6 +83,9 @@ main() {
         echo "Установка отменена"
         exit 0
     fi
+
+    # Настройка токена для private GitHub репозиториев (опционально)
+    setup_installer_auth_token
     
     # Обновление системы
     update_system

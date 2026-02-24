@@ -1,19 +1,19 @@
 # Установщик Bedolaga Bot (ветка spiderman)
 
-Этот документ описывает актуальную логику установщика в репозитории `RamaPulya/bot_auto_install` (ветка `spiderman`) и отличия от исходной версии.
+Этот документ описывает актуальную логику установщика в репозитории `RamaPulya/install-spider-bot` (ветка `spiderman`) и отличия от исходной версии.
 
 Актуальная версия установщика: `1.4.13`.
 
 ## Быстрый запуск
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderman/scripts/quick-install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/RamaPulya/install-spider-bot/spiderman/scripts/quick-install.sh | sudo bash
 ```
 
 ## Репозитории и ветки
 
-- Инсталлятор: `https://github.com/RamaPulya/bot_auto_install` (ветка `spiderman`)
-- Бот: `https://github.com/RamaPulya/remnawave-bedolaga-telegram-bot` (ветка `spiderman`)
+- Инсталлятор: `https://github.com/RamaPulya/install-spider-bot` (ветка `spiderman`)
+- Бот: `https://github.com/RamaPulya/spiderbot` (ветка `spiderman`)
 
 Скрипт установки всегда тянет именно ветку `spiderman` и при обновлении делает `git pull origin spiderman`.
 
@@ -49,11 +49,11 @@ curl -fsSL https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderma
 
 ## Изменения в ветке spiderman (установщик)
 
-- Подключение к боту переключено на `RamaPulya/remnawave-bedolaga-telegram-bot` и ветку `spiderman`.
-- Все ссылки на установщик переведены на `RamaPulya/bot_auto_install`, ветка `spiderman`.
+- Подключение к боту переключено на `RamaPulya/spiderbot` и ветку `spiderman`.
+- Все ссылки на установщик переведены на `RamaPulya/install-spider-bot`, ветка `spiderman`.
 - Добавлен модуль `scripts/lib/caddy_setup.sh`.
 - Обновления бота (`upgrade.sh`, `final.sh`) делают `git pull` нужной ветки.
-- `VERSION_CHECK_REPO` указывает на `RamaPulya/remnawave-bedolaga-telegram-bot`.
+- `VERSION_CHECK_REPO` указывает на `RamaPulya/spiderbot`.
 
 ## Примечания
 
@@ -68,8 +68,14 @@ curl -fsSL https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderma
   - `bot cabinet-update`
   - `bot cabinet-status`
   - `bot cabinet-logs` (realtime логи `cabinet_frontend`)
+  - `bot cabinet-stop`
+  - `bot cabinet-start`
+  - `bot cabinet-restart` (без `--build`, с `--force-recreate`)
+  - `bot cabinet-env` (редактирование `.env` кабинета)
   - `bot cabinet-caddy`
-- Кабинет устанавливается/обновляется в `/opt/bedolaga-cabinet` из `RamaPulya/bedolaga-cabinet`, ветка `spiderman`.
+  - `bot cabinet-caddy-edit` (редактирование Caddyfile с подтверждением recreate)
+  - `bot cabinet-caddy-recreate`
+- Кабинет устанавливается/обновляется в `/opt/bedolaga-cabinet` из `RamaPulya/spidercabinet`, ветка `spiderman`.
 - Перед деплоем всегда пересоздаётся `docker-compose.override.yml`, чтобы `cabinet_frontend` подключался к external-сети `remnawave-network`.
 - Деплой выполняется через:
   - `docker compose up -d --build --force-recreate cabinet-frontend`
@@ -82,8 +88,13 @@ curl -fsSL https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderma
 - `2) 🔄 Обновить кабинет`
 - `3) 📊 Статус кабинета`
 - `4) 📋 Логи кабинета` (realtime `docker compose logs -f` для `cabinet_frontend`)
-- `5) 🌐 Проверка Caddy (cabinet)`
-- `6) 🔁 Пересоздать Caddy`
+- `5) ⏹️ Остановить кабинет`
+- `6) ▶️ Запустить кабинет`
+- `7) 🔄 Перезапустить кабинет`
+- `8) ⚙ Редактировать .env кабинета`
+- `9) 🌐 Проверка Caddy (cabinet)`
+- `10) 📝 Редактировать Caddyfile`
+- `11) 🔁 Пересоздать Caddy`
 - `0) ↩ Назад`
 
 Примечание по терминалу:
@@ -103,3 +114,4 @@ curl -fsSL https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderma
 - Базовые коды возврата:
   - `20` — preflight не пройден;
   - `21` — lock занят (уже запущена другая операция).
+

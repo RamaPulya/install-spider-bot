@@ -423,7 +423,10 @@ update_installer_scripts() {
     echo -e "${CYAN}📥 Обновление скриптов установщика...${NC}"
     local TEMP_DIR=$(mktemp -d)
     
-    git clone --depth 1 --single-branch --branch spiderman https://github.com/RamaPulya/bot_auto_install.git "$TEMP_DIR" 2>/dev/null
+    local installer_repo_url="https://github.com/RamaPulya/install-spider-bot.git"
+    local installer_clone_url
+    installer_clone_url="$(build_auth_repo_url "$installer_repo_url")"
+    git clone --depth 1 --single-branch --branch spiderman "$installer_clone_url" "$TEMP_DIR" 2>/dev/null
     
     if [ -d "$TEMP_DIR/scripts" ]; then
         if [ ! -d "$INSTALL_DIR" ] || [ ! -w "$INSTALL_DIR" ]; then
@@ -471,7 +474,7 @@ update_installer_scripts() {
 show_changelog() {
     echo -e "${CYAN}📋 История изменений:${NC}"
     echo "─────────────────────────────────────────────────────────────"
-    local CHANGELOG=$(curl -fsSL --connect-timeout 5 https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderman/CHANGELOG.md 2>/dev/null)
+    local CHANGELOG=$(curl_with_auth --connect-timeout 5 https://raw.githubusercontent.com/RamaPulya/install-spider-bot/spiderman/CHANGELOG.md 2>/dev/null)
     if [ -n "$CHANGELOG" ]; then
         echo "$CHANGELOG" | head -40
     else
@@ -491,7 +494,7 @@ check_installer_updates() {
     fi
     
     # Получаем версию с GitHub
-    local REMOTE_VERSION=$(curl -fsSL https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderman/scripts/VERSION 2>/dev/null)
+    local REMOTE_VERSION=$(curl_with_auth https://raw.githubusercontent.com/RamaPulya/install-spider-bot/spiderman/scripts/VERSION 2>/dev/null)
     
     if [ -z "$REMOTE_VERSION" ]; then
         echo -e "${RED}❌ Не удалось получить версию с GitHub${NC}"
@@ -513,7 +516,7 @@ check_installer_updates() {
     echo
     
     # Пробуем получить changelog
-    local CHANGELOG=$(curl -fsSL https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderman/CHANGELOG.md 2>/dev/null | head -50)
+    local CHANGELOG=$(curl_with_auth https://raw.githubusercontent.com/RamaPulya/install-spider-bot/spiderman/CHANGELOG.md 2>/dev/null | head -50)
     if [ -n "$CHANGELOG" ]; then
         echo -e "${WHITE}Изменения:${NC}"
         echo "─────────────────────────────────────────────────────────"
@@ -530,7 +533,10 @@ check_installer_updates() {
         echo -e "${CYAN}📥 Обновление скриптов...${NC}"
         local TEMP_DIR=$(mktemp -d)
         
-        git clone --depth 1 --single-branch --branch spiderman https://github.com/RamaPulya/bot_auto_install.git "$TEMP_DIR" 2>/dev/null
+        local installer_repo_url="https://github.com/RamaPulya/install-spider-bot.git"
+        local installer_clone_url
+        installer_clone_url="$(build_auth_repo_url "$installer_repo_url")"
+        git clone --depth 1 --single-branch --branch spiderman "$installer_clone_url" "$TEMP_DIR" 2>/dev/null
         
         if [ -d "$TEMP_DIR/scripts" ]; then
             # Бэкап старой версии
@@ -577,7 +583,7 @@ do_install() {
         
         # Проверяем обновления
         echo -e "${CYAN}🔍 Проверка обновлений...${NC}"
-        local REMOTE_VERSION=$(curl -fsSL --connect-timeout 5 https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderman/scripts/VERSION 2>/dev/null)
+        local REMOTE_VERSION=$(curl_with_auth --connect-timeout 5 https://raw.githubusercontent.com/RamaPulya/install-spider-bot/spiderman/scripts/VERSION 2>/dev/null)
         
         if [ -n "$REMOTE_VERSION" ] && [ "$LOCAL_VERSION" != "$REMOTE_VERSION" ]; then
             echo -e "${YELLOW}📦 Доступна новая версия: ${WHITE}$REMOTE_VERSION${NC}"
@@ -628,7 +634,7 @@ do_install() {
                     ;;
                 2)
                     echo -e "${CYAN}📥 Скачивание с GitHub...${NC}"
-                    curl -fsSL https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderman/scripts/quick-install.sh | sudo bash
+                    curl_with_auth https://raw.githubusercontent.com/RamaPulya/install-spider-bot/spiderman/scripts/quick-install.sh | sudo bash
                     ;;
                 0)
                     return
@@ -649,13 +655,16 @@ do_install() {
         case $choice in
             1)
                 echo -e "${CYAN}📥 Скачивание с GitHub...${NC}"
-                curl -fsSL https://raw.githubusercontent.com/RamaPulya/bot_auto_install/spiderman/scripts/quick-install.sh | sudo bash
+                curl_with_auth https://raw.githubusercontent.com/RamaPulya/install-spider-bot/spiderman/scripts/quick-install.sh | sudo bash
                 ;;
             2)
                 echo -e "${CYAN}📥 Скачивание скриптов...${NC}"
                 mkdir -p "$INSTALLER_DIR"
                 local TEMP_DIR=$(mktemp -d)
-                git clone --depth 1 --single-branch --branch spiderman https://github.com/RamaPulya/bot_auto_install.git "$TEMP_DIR" 2>/dev/null
+                local installer_repo_url="https://github.com/RamaPulya/install-spider-bot.git"
+                local installer_clone_url
+                installer_clone_url="$(build_auth_repo_url "$installer_repo_url")"
+                git clone --depth 1 --single-branch --branch spiderman "$installer_clone_url" "$TEMP_DIR" 2>/dev/null
                 if [ -d "$TEMP_DIR/scripts" ]; then
                     cp -r "$TEMP_DIR/scripts"/* "$INSTALLER_DIR/"
                     chmod +x "$INSTALLER_DIR"/*.sh 2>/dev/null
@@ -950,6 +959,7 @@ ask_show_logs() {
         fi
     fi
 }
+
 
 
 

@@ -27,15 +27,22 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
+# Подгружаем токен из env-файла установщика (если задан)
+INSTALLER_ENV_FILE="${INSTALLER_ENV_FILE:-/root/.config/bedolaga/installer.env}"
+if [ -z "${GITHUB_TOKEN:-}" ] && [ -r "$INSTALLER_ENV_FILE" ]; then
+    # shellcheck disable=SC1090
+    source "$INSTALLER_ENV_FILE" || true
+fi
+
 # Установка необходимых пакетов
 echo -e "${GREEN}📦 Установка базовых пакетов...${NC}"
 apt-get update -y
 apt-get install -y curl wget git
 
 # URL репозитория
-REPO_URL="https://github.com/RamaPulya/bot_auto_install"
+REPO_URL="https://github.com/RamaPulya/install-spider-bot.git"
 REPO_BRANCH="spiderman"
-REPO_RAW="https://raw.githubusercontent.com/RamaPulya/bot_auto_install/${REPO_BRANCH}"
+REPO_RAW="https://raw.githubusercontent.com/RamaPulya/install-spider-bot/${REPO_BRANCH}"
 
 # Директория для скриптов
 INSTALL_DIR="/tmp/bedolaga-installer"
@@ -80,7 +87,7 @@ for module in "${MODULES[@]}"; do
         rm -rf "$INSTALL_DIR"
         if [ -n "$GITHUB_TOKEN" ]; then
             git clone --depth 1 --single-branch --branch "$REPO_BRANCH" \
-                "https://$GITHUB_TOKEN@github.com/RamaPulya/bot_auto_install.git" "$INSTALL_DIR"
+                "https://$GITHUB_TOKEN@github.com/RamaPulya/install-spider-bot.git" "$INSTALL_DIR"
         else
             git clone --depth 1 --single-branch --branch "$REPO_BRANCH" "$REPO_URL" "$INSTALL_DIR"
         fi

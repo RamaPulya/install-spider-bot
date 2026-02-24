@@ -1,5 +1,58 @@
 # 📝 История изменений
 
+## [1.4.16] - 2026-02-24
+
+### ✨ Новое
+- В `install.sh` добавлен интерактивный шаг настройки GitHub токена:
+  - запрос: настроить токен или пропустить;
+  - поддержка обновления уже существующего токена;
+  - безопасный ввод токена (`read -s`) без отображения в терминале.
+- Токен сохраняется в `INSTALLER_ENV_FILE` (по умолчанию `/root/.config/bedolaga/installer.env`) с правами `600`.
+
+---
+
+## [1.4.15] - 2026-02-24
+
+### ✨ Новое
+- Добавлен пример файла секретов установщика: `scripts/installer.env.example`.
+- Добавлена автоматическая загрузка `GITHUB_TOKEN` из:
+  - `INSTALLER_ENV_FILE` (по умолчанию `/root/.config/bedolaga/installer.env`);
+  - fallback: `/etc/bedolaga/installer.env`.
+
+### 🔐 Безопасность и private-репозитории
+- Установщик и команда `bot` теперь выполняют GitHub `fetch/ls-remote` с auth header при наличии `GITHUB_TOKEN` (без сохранения токена в git remote).
+- `git clone` для private-репозиториев поддерживается через токен.
+- `curl` загрузки установщика/версии/changelog/quick-install поддерживают авторизацию через токен.
+
+### 🔄 Обновлены репозитории SpiderMan
+- `bot_auto_install` -> `install-spider-bot`
+- `bedolaga-cabinet` -> `spidercabinet`
+- `remnawave-bedolaga-telegram-bot` -> `spiderbot` (для install flow)
+
+---
+
+## [1.4.14] - 2026-02-24
+
+### ✨ Новое
+- Расширен раздел Cabinet в команде `bot`:
+  - `cabinet-stop`, `cabinet-start`, `cabinet-restart`
+  - `cabinet-env` (редактирование `/opt/bedolaga-cabinet/.env`)
+  - `cabinet-caddy-edit` (редактирование `/opt/caddy-remnawave/Caddyfile`)
+- В menu Cabinet добавлены операции остановки/запуска/перезапуска и редакторы `.env`/`Caddyfile`.
+
+### 🐛 Исправления
+- Улучшена надежность self-update установщика:
+  - атомарная замена `.installer` через временную директорию + backup;
+  - проверка синтаксиса `upgrade.sh` перед активацией новой версии;
+  - пересоздание `bot` без тихого подавления ошибок;
+  - post-check команды `bot` через `bash -n` и `bot help`.
+- Улучшена генерация `/usr/local/bin/bot`:
+  - запись во временный файл и атомарный `mv`;
+  - проверка синтаксиса перед активацией;
+  - `hash -r` после обновления команды.
+
+---
+
 ## [1.4.1] - 2024-12-18
 
 ### 🐛 Исправления

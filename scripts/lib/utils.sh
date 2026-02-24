@@ -14,6 +14,55 @@ export CYAN='\033[0;36m'
 export WHITE='\033[1;37m'
 export NC='\033[0m' # No Color
 
+AUTH_ENV_LOADED=0
+INSTALLER_ENV_FILE="${INSTALLER_ENV_FILE:-/root/.config/bedolaga/installer.env}"
+
+load_installer_auth_env() {
+    if [ "$AUTH_ENV_LOADED" -eq 1 ]; then
+        return 0
+    fi
+
+    local env_file=""
+    for env_file in "$INSTALLER_ENV_FILE" "/etc/bedolaga/installer.env"; do
+        if [ -n "$env_file" ] && [ -r "$env_file" ]; then
+            # shellcheck disable=SC1090
+            source "$env_file" || true
+            break
+        fi
+    done
+
+    AUTH_ENV_LOADED=1
+}
+
+build_auth_repo_url() {
+    local repo_url="$1"
+    load_installer_auth_env
+
+    if [ -n "${GITHUB_TOKEN:-}" ] && [[ "$repo_url" == https://github.com/* ]]; then
+        echo "${repo_url/https:\/\/github.com\//https:\/\/${GITHUB_TOKEN}@github.com\/}"
+    else
+        echo "$repo_url"
+    fi
+}
+
+git_with_auth() {
+    load_installer_auth_env
+    if [ -n "${GITHUB_TOKEN:-}" ]; then
+        git -c "http.https://github.com/.extraheader=Authorization: Bearer ${GITHUB_TOKEN}" "$@"
+    else
+        git "$@"
+    fi
+}
+
+curl_with_auth() {
+    load_installer_auth_env
+    if [ -n "${GITHUB_TOKEN:-}" ]; then
+        curl -fsSL -H "Authorization: Bearer ${GITHUB_TOKEN}" "$@"
+    else
+        curl -fsSL "$@"
+    fi
+}
+
 # Функции вывода
 print_banner() {
     clear
@@ -56,10 +105,20 @@ confirm() {
     local prompt="${1:-Продолжить?}"
     local default="${2:-n}"
     local response
+    local suffix="(y/n)"
+
+    if [ "$default" = "y" ]; then
+        suffix="(Y/n)"
+    elif [ "$default" = "n" ]; then
+        suffix="(y/N)"
+    fi
     
     while true; do
-        read -p "$prompt (y/n): " -n 1 response < /dev/tty
+        read -p "$prompt $suffix: " -n 1 response < /dev/tty
         echo
+        if [ -z "$response" ]; then
+            response="$default"
+        fi
         case "$response" in
             [yY]) return 0 ;;
             [nN]) return 1 ;;
@@ -68,6 +127,48 @@ confirm() {
                 ;;
         esac
     done
+}
+
+setup_installer_auth_token() {
+    local env_file="${INSTALLER_ENV_FILE:-/root/.config/bedolaga/installer.env}"
+    local token_input=""
+
+    load_installer_auth_env
+
+    echo
+    echo -e "${WHITE}Доступ к private репозиториям GitHub:${NC}"
+    if [ -n "${GITHUB_TOKEN:-}" ]; then
+        echo -e "${GREEN}✅ Токен уже найден${NC} (${env_file})"
+        if ! confirm "Обновить токен?" "n"; then
+            print_info "Оставляем текущий токен"
+            return 0
+        fi
+    else
+        echo -e "${YELLOW}⚠️  Токен не найден${NC}"
+        if ! confirm "Настроить GITHUB_TOKEN сейчас?" "y"; then
+            print_warning "Пропускаем настройку токена. Для private репо clone/fetch могут не работать."
+            return 0
+        fi
+    fi
+
+    read -r -s -p "Введите GITHUB_TOKEN (или Enter для пропуска): " token_input < /dev/tty
+    echo
+    if [ -z "$token_input" ]; then
+        print_warning "Токен не введён. Настройка пропущена."
+        return 0
+    fi
+
+    mkdir -p "$(dirname "$env_file")"
+    umask 177
+    cat > "$env_file" << EOF
+# Bedolaga installer auth
+GITHUB_TOKEN=$token_input
+EOF
+    chmod 600 "$env_file" 2>/dev/null || true
+
+    export GITHUB_TOKEN="$token_input"
+    AUTH_ENV_LOADED=1
+    print_success "Токен сохранён: $env_file"
 }
 
 # Генерация безопасного случайного токена (hex)
