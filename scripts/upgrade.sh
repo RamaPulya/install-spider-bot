@@ -277,13 +277,21 @@ cleanup_script() {
     release_lock
 }
 
+on_interrupt() {
+    cleanup_script
+    echo
+    echo -e "${YELLOW}Операция прервана (Ctrl+C)${NC}"
+    exit 130
+}
+
 on_err() {
     local rc=$?
     log_error "Execution failed (exit code $rc)"
     exit "$rc"
 }
 
-trap cleanup_script EXIT INT TERM
+trap cleanup_script EXIT
+trap on_interrupt INT TERM
 trap on_err ERR
 
 # ═══════════════════════════════════════════════════════════════
@@ -762,7 +770,15 @@ cleanup_runtime() {
     release_lock
 }
 
-trap cleanup_runtime EXIT INT TERM
+on_runtime_interrupt() {
+    cleanup_runtime
+    echo
+    echo -e "\${YELLOW}Операция прервана (Ctrl+C)\${NC}"
+    exit 130
+}
+
+trap cleanup_runtime EXIT
+trap on_runtime_interrupt INT TERM
 
 check_install_dir() {
     if [ ! -d "\$INSTALL_DIR" ]; then
