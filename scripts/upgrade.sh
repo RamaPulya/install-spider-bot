@@ -74,9 +74,13 @@ load_installer_auth_env() {
 git_with_auth() {
     load_installer_auth_env
     if [ -n "${GITHUB_TOKEN:-}" ]; then
-        git -c "http.https://github.com/.extraheader=Authorization: Bearer ${GITHUB_TOKEN}" "$@"
+        GIT_TERMINAL_PROMPT=0 git \
+            -c credential.helper= \
+            -c core.askPass=true \
+            -c "url.https://x-access-token:${GITHUB_TOKEN}@github.com/.insteadOf=https://github.com/" \
+            "$@"
     else
-        git "$@"
+        GIT_TERMINAL_PROMPT=0 git "$@"
     fi
 }
 
@@ -567,9 +571,13 @@ load_installer_auth_env() {
 git_with_auth() {
     load_installer_auth_env
     if [ -n "\${GITHUB_TOKEN:-}" ]; then
-        git -c "http.https://github.com/.extraheader=Authorization: Bearer \${GITHUB_TOKEN}" "\$@"
+        GIT_TERMINAL_PROMPT=0 git \
+            -c credential.helper= \
+            -c core.askPass=true \
+            -c "url.https://x-access-token:\${GITHUB_TOKEN}@github.com/.insteadOf=https://github.com/" \
+            "\$@"
     else
-        git "\$@"
+        GIT_TERMINAL_PROMPT=0 git "\$@"
     fi
 }
 
