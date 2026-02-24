@@ -74,14 +74,15 @@ load_installer_auth_env() {
 git_with_auth() {
     load_installer_auth_env
     if [ -n "${GITHUB_TOKEN:-}" ]; then
-        GIT_TERMINAL_PROMPT=0 git \
+        if GIT_TERMINAL_PROMPT=0 git \
             -c credential.helper= \
             -c core.askPass=true \
             -c "url.https://x-access-token:${GITHUB_TOKEN}@github.com/.insteadOf=https://github.com/" \
-            "$@"
-    else
-        GIT_TERMINAL_PROMPT=0 git "$@"
+            "$@"; then
+            return 0
+        fi
     fi
+    GIT_TERMINAL_PROMPT=0 git "$@"
 }
 
 curl_with_auth() {
@@ -571,14 +572,15 @@ load_installer_auth_env() {
 git_with_auth() {
     load_installer_auth_env
     if [ -n "\${GITHUB_TOKEN:-}" ]; then
-        GIT_TERMINAL_PROMPT=0 git \
+        if GIT_TERMINAL_PROMPT=0 git \
             -c credential.helper= \
             -c core.askPass=true \
             -c "url.https://x-access-token:\${GITHUB_TOKEN}@github.com/.insteadOf=https://github.com/" \
-            "\$@"
-    else
-        GIT_TERMINAL_PROMPT=0 git "\$@"
+            "\$@"; then
+            return 0
+        fi
     fi
+    GIT_TERMINAL_PROMPT=0 git "\$@"
 }
 
 curl_with_auth() {
