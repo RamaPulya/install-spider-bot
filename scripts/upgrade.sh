@@ -82,7 +82,10 @@ git_with_auth() {
             return 0
         fi
     fi
-    GIT_TERMINAL_PROMPT=0 git "$@"
+    GIT_TERMINAL_PROMPT=0 git \
+        -c credential.helper= \
+        -c core.askPass=true \
+        "$@"
 }
 
 curl_with_auth() {
@@ -580,7 +583,10 @@ git_with_auth() {
             return 0
         fi
     fi
-    GIT_TERMINAL_PROMPT=0 git "\$@"
+    GIT_TERMINAL_PROMPT=0 git \
+        -c credential.helper= \
+        -c core.askPass=true \
+        "\$@"
 }
 
 curl_with_auth() {
