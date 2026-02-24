@@ -1,4 +1,4 @@
-# Установщик Bedolaga Bot (ветка spiderman)
+# Установщик Bot (ветка spiderman)
 
 Этот документ описывает актуальную логику установщика в репозитории `RamaPulya/install-spider-bot` (ветка `spiderman`) и отличия от исходной версии.
 
