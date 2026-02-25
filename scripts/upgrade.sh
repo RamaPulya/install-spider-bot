@@ -1395,6 +1395,59 @@ do_cabinet_install() {
     do_cabinet_status
 }
 
+show_cabinet_update_info() {
+    echo
+    echo -e "\${CYAN}╔═══════════════════════════════════════════════════════════════════════════════╗\${NC}"
+    echo -e "\${WHITE}📦 ПРОВЕРКА ОБНОВЛЕНИЙ КАБИНЕТА\${NC}"
+    echo -e "\${CYAN}╚═══════════════════════════════════════════════════════════════════════════════╝\${NC}"
+
+    if [ ! -d "\$CABINET_DIR/.git" ]; then
+        echo -e "\${YELLOW}Кабинет не установлен: \$CABINET_DIR\${NC}"
+        return 1
+    fi
+
+    ensure_safe_directory "\$CABINET_DIR"
+
+    local branch=""
+    local local_hash=""
+    local local_date=""
+    local remote_hash=""
+    local remote_date=""
+    local behind="0"
+
+    branch=\$(git -C "\$CABINET_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "?")
+    local_hash=\$(git -C "\$CABINET_DIR" rev-parse --short HEAD 2>/dev/null || echo "?")
+    local_date=\$(git -C "\$CABINET_DIR" log -1 --date=short --format=%ad 2>/dev/null || echo "?")
+
+    git -C "\$CABINET_DIR" remote set-url origin "\$CABINET_REPO_URL" >/dev/null 2>&1 || true
+    if ! git_with_auth -C "\$CABINET_DIR" fetch --prune origin >/dev/null 2>&1; then
+        echo -e "\${YELLOW}⚠️  Не удалось получить обновления кабинета из GitHub\${NC}"
+    fi
+
+    remote_hash=\$(git -C "\$CABINET_DIR" rev-parse --short "origin/\$CABINET_BRANCH" 2>/dev/null || echo "?")
+    remote_date=\$(git -C "\$CABINET_DIR" log -1 "origin/\$CABINET_BRANCH" --date=short --format=%ad 2>/dev/null || echo "?")
+    behind=\$(git -C "\$CABINET_DIR" rev-list --count "HEAD..origin/\$CABINET_BRANCH" 2>/dev/null || echo "0")
+
+    echo -e "\${WHITE}Repo:\${NC} \${CYAN}\$CABINET_DIR\${NC}"
+    echo -e "\${WHITE}Ветка:\${NC} \${CYAN}\$branch\${NC} (целевая: \$CABINET_BRANCH)"
+    echo -e "\${WHITE}Локальная версия:\${NC} \${CYAN}\$local_hash\${NC} | \$local_date"
+    echo -e "\${WHITE}Удаленная версия:\${NC} \${CYAN}\$remote_hash\${NC} | \$remote_date"
+    echo
+
+    if [ "\$behind" -gt 0 ] 2>/dev/null; then
+        echo -e "\${YELLOW}Доступно обновлений: \$behind\${NC}"
+    else
+        echo -e "\${GREEN}Обновлений нет — кабинет уже на актуальной версии\${NC}"
+    fi
+
+    echo
+    echo -e "\${WHITE}Последние коммиты (origin/\$CABINET_BRANCH):\${NC}"
+    git -C "\$CABINET_DIR" log -n 5 --date=short --pretty=format:"%h | %ad | %an | %s" "origin/\$CABINET_BRANCH" 2>/dev/null || echo "Нет данных"
+    echo
+
+    return 0
+}
+
 do_cabinet_update() {
     preflight_action "cabinet-update" true true true true true 512 "\$CABINET_DIR" true || return \$?
     echo
@@ -1620,7 +1673,18 @@ cabinet_menu() {
         read -p "Ваш выбор: " cabinet_choice
         case \$cabinet_choice in
             1) do_cabinet_install; read -p "Нажмите Enter..." ;;
-            2) do_cabinet_update; read -p "Нажмите Enter..." ;;
+            2)
+                if show_cabinet_update_info; then
+                    if cabinet_prompt_yes_no "Обновить кабинет сейчас?" "false"; then
+                        do_cabinet_update
+                    else
+                        echo -e "\${YELLOW}Обновление кабинета отменено\${NC}"
+                    fi
+                else
+                    echo -e "\${YELLOW}Сначала установите кабинет (пункт 1)\${NC}"
+                fi
+                read -p "Нажмите Enter..."
+                ;;
             3) do_cabinet_status; read -p "Нажмите Enter..." ;;
             4) do_cabinet_logs ;;
             5) do_cabinet_stop; read -p "Нажмите Enter..." ;;
