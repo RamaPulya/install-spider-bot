@@ -10,6 +10,51 @@
 curl -fsSL https://raw.githubusercontent.com/RamaPulya/install-spider-bot/spiderman/scripts/quick-install.sh | sudo bash
 ```
 
+## Запуск с нуля (чистый сервер / миграция со старого установщика)
+
+### 1) Подготовка токена для private-репозиториев
+
+```bash
+sudo mkdir -p /opt/install-spider-bot
+sudo tee /opt/install-spider-bot/installer.env >/dev/null <<'EOF'
+GITHUB_TOKEN=PASTE_FINE_GRAINED_TOKEN_HERE
+EOF
+sudo chmod 600 /opt/install-spider-bot/installer.env
+```
+
+### 2) Переключение бота на новый origin
+
+```bash
+cd /opt/remnawave-bedolaga-telegram-bot
+sudo git remote set-url origin https://github.com/RamaPulya/spiderbot.git
+```
+
+### 3) Обновление только установщика (без обновления бота и кабинета)
+
+```bash
+cd /opt/remnawave-bedolaga-telegram-bot
+tmp="$(mktemp -d)"
+sudo bash -lc 'source /opt/install-spider-bot/installer.env; git clone --depth 1 --single-branch --branch spiderman "https://${GITHUB_TOKEN}@github.com/RamaPulya/install-spider-bot.git" "'"$tmp"'"'
+
+sudo mv .installer ".installer.backup.$(date +%Y%m%d_%H%M%S)" 2>/dev/null || true
+sudo cp -r "$tmp/scripts" .installer
+sudo chmod +x .installer/*.sh .installer/lib/*.sh
+sudo rm -rf "$tmp"
+
+sudo INSTALLER_ENV_FILE=/opt/install-spider-bot/installer.env BOT_SKIP_LOCK=true FORCE_INSTALL_BOT_COMMAND=true \
+bash /opt/remnawave-bedolaga-telegram-bot/.installer/upgrade.sh --install-bot-command --force
+```
+
+### 4) Проверка
+
+```bash
+sudo INSTALLER_ENV_FILE=/opt/install-spider-bot/installer.env /usr/local/bin/bot version
+```
+
+Ожидаемо:
+- версия установщика `v1.4.21` или выше;
+- далее обновление бота делается через `bot` -> `9`, кабинета через `bot` -> `12` -> `2`.
+
 ## Репозитории и ветки
 
 - Инсталлятор: `https://github.com/RamaPulya/install-spider-bot` (ветка `spiderman`)
@@ -139,4 +184,3 @@ grep -n "INSTALLER_REPO_URL=" /usr/local/bin/bot | head -n 3
 - версия установщика: `v1.4.21` или выше;
 - `ls-remote` возвращает `0`;
 - URL установщика: `https://github.com/RamaPulya/install-spider-bot.git`.
-

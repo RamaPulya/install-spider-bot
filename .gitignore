@@ -35,3 +35,8 @@ docker-compose.override.yml
 tmp/
 temp/
 *.tmp
+
+# Local-only docs
+CHANGELOG.md
+README.md
+SPIDERMAN_INSTALLER.md
