@@ -852,6 +852,32 @@ save_repo_branch_to_config() {
     fi
 }
 
+load_cabinet_branch_from_config() {
+    if [ ! -f "\$INSTALL_CONFIG_FILE" ]; then
+        return 0
+    fi
+    local saved_branch=""
+    saved_branch="\$(grep -E '^CABINET_BRANCH=' "\$INSTALL_CONFIG_FILE" 2>/dev/null | tail -n 1 | cut -d= -f2- | tr -d '\"' | xargs || true)"
+    if [ -n "\$saved_branch" ]; then
+        CABINET_BRANCH="\$(normalize_repo_branch "\$saved_branch")"
+    fi
+}
+
+save_cabinet_branch_to_config() {
+    local branch="\$(normalize_repo_branch "\$CABINET_BRANCH")"
+    CABINET_BRANCH="\$branch"
+
+    if [ -f "\$INSTALL_CONFIG_FILE" ]; then
+        if grep -qE '^CABINET_BRANCH=' "\$INSTALL_CONFIG_FILE"; then
+            sed -i "s|^CABINET_BRANCH=.*$|CABINET_BRANCH=\$branch|" "\$INSTALL_CONFIG_FILE"
+        else
+            printf '\nCABINET_BRANCH=%s\n' "\$branch" >> "\$INSTALL_CONFIG_FILE"
+        fi
+    else
+        printf 'CABINET_BRANCH=%s\n' "\$branch" > "\$INSTALL_CONFIG_FILE"
+    fi
+}
+
 select_repo_branch_interactive() {
     echo
     echo -e "\${WHITE}Ветка обновления:\${NC} \${CYAN}\$REPO_BRANCH\${NC}"
@@ -874,6 +900,33 @@ select_repo_branch_interactive() {
 
     save_repo_branch_to_config
     echo -e "\${GREEN}✅ Используется ветка: \$REPO_BRANCH\${NC}"
+    return 0
+}
+
+select_cabinet_branch_interactive() {
+    load_cabinet_branch_from_config
+
+    echo
+    echo -e "\${WHITE}Ветка кабинета:\${NC} \${CYAN}\$CABINET_BRANCH\${NC}"
+    echo -e "\${WHITE}Выберите ветку для установки и обновления кабинета:\${NC}"
+    echo -e "  \${CYAN}1)\${NC} spiderman"
+    echo -e "  \${CYAN}2)\${NC} main"
+    echo -e "  \${CYAN}0)\${NC} Отмена"
+    echo
+    read -p "Ваш выбор [1]: " branch_choice
+    branch_choice=\${branch_choice:-1}
+
+    case "\$branch_choice" in
+        1) CABINET_BRANCH="spiderman" ;;
+        2) CABINET_BRANCH="main" ;;
+        0) return 1 ;;
+        *)
+            echo -e "\${YELLOW}⚠ Неверный выбор, оставляем ветку: \$CABINET_BRANCH\${NC}"
+            ;;
+    esac
+
+    save_cabinet_branch_to_config
+    echo -e "\${GREEN}✅ Для кабинета используется ветка: \$CABINET_BRANCH\${NC}"
     return 0
 }
 
@@ -1298,6 +1351,7 @@ run_cabinet_compose() {
 }
 
 sync_cabinet_repo() {
+    load_cabinet_branch_from_config
     echo -e "\${CYAN}📦 Синхронизация репозитория кабинета (\$CABINET_BRANCH)...\${NC}"
 
     if [ -d "\$CABINET_DIR/.git" ]; then
@@ -1381,10 +1435,16 @@ deploy_cabinet_frontend() {
 
 do_cabinet_install() {
     preflight_action "cabinet-install" true true true true true 512 "\$CABINET_DIR" true || return \$?
+    load_cabinet_branch_from_config
     echo
     echo -e "\${CYAN}╔═══════════════════════════════════════════════════════════════════════════════╗\${NC}"
     echo -e "\${WHITE}👤 УСТАНОВКА КАБИНЕТА\${NC}"
     echo -e "\${CYAN}╚═══════════════════════════════════════════════════════════════════════════════╝\${NC}"
+
+    if ! select_cabinet_branch_interactive; then
+        echo -e "\${YELLOW}Установка кабинета отменена\${NC}"
+        return 0
+    fi
 
     if ! sync_cabinet_repo; then
         return 1
@@ -1396,6 +1456,7 @@ do_cabinet_install() {
 }
 
 show_cabinet_update_info() {
+    load_cabinet_branch_from_config
     echo
     echo -e "\${CYAN}╔═══════════════════════════════════════════════════════════════════════════════╗\${NC}"
     echo -e "\${WHITE}📦 ПРОВЕРКА ОБНОВЛЕНИЙ КАБИНЕТА\${NC}"
@@ -1450,6 +1511,7 @@ show_cabinet_update_info() {
 
 do_cabinet_update() {
     preflight_action "cabinet-update" true true true true true 512 "\$CABINET_DIR" true || return \$?
+    load_cabinet_branch_from_config
     echo
     echo -e "\${CYAN}╔═══════════════════════════════════════════════════════════════════════════════╗\${NC}"
     echo -e "\${WHITE}🔄 ОБНОВЛЕНИЕ КАБИНЕТА\${NC}"
@@ -1521,6 +1583,7 @@ do_cabinet_env_edit() {
 
 do_cabinet_status() {
     preflight_action "cabinet-status" false false false true true 128 "\$CABINET_DIR" false || return \$?
+    load_cabinet_branch_from_config
     echo
     echo -e "\${CYAN}╔═══════════════════════════════════════════════════════════════════════════════╗\${NC}"
     echo -e "\${WHITE}📊 СТАТУС КАБИНЕТА\${NC}"
@@ -1655,8 +1718,10 @@ cabinet_menu() {
     set +e
     while true; do
         clear
+        load_cabinet_branch_from_config
         echo
         echo -e "\${WHITE}Кабинет:\${NC}"
+        echo -e "\${WHITE}Ветка для установки/обновления:\${NC} \${CYAN}\$CABINET_BRANCH\${NC}"
         echo -e "  \${CYAN}1)\${NC} 📥 Установить кабинет"
         echo -e "  \${CYAN}2)\${NC} 🔄 Обновить кабинет"
         echo -e "  \${CYAN}3)\${NC} 📊 Статус кабинета"
@@ -1668,6 +1733,7 @@ cabinet_menu() {
         echo -e "  \${CYAN}9)\${NC} 🌐 Проверка Caddy (cabinet)"
         echo -e "  \${CYAN}10)\${NC} 📝 Редактировать Caddyfile"
         echo -e "  \${CYAN}11)\${NC} 🔁 Пересоздать Caddy"
+        echo -e "  \${CYAN}12)\${NC} 🌿 Выбрать ветку кабинета"
         echo -e "  \${CYAN}0)\${NC} ↩ Назад"
         echo
         read -p "Ваш выбор: " cabinet_choice
@@ -1694,6 +1760,7 @@ cabinet_menu() {
             9) do_cabinet_caddy_check; read -p "Нажмите Enter..." ;;
             10) do_cabinet_caddy_edit; read -p "Нажмите Enter..." ;;
             11) do_cabinet_caddy_recreate; read -p "Нажмите Enter..." ;;
+            12) select_cabinet_branch_interactive; read -p "Нажмите Enter..." ;;
             0) return ;;
             *) echo -e "\${RED}Неверный выбор\${NC}"; sleep 1 ;;
         esac
@@ -1941,6 +2008,7 @@ show_help() {
     echo -e "  \${GREEN}installer\${NC}  — Обновить скрипты установщика"
     echo -e "  \${GREEN}cabinet-install\${NC}  — Установить кабинет"
     echo -e "  \${GREEN}cabinet-update\${NC}   — Обновить кабинет"
+    echo -e "  \${GREEN}cabinet-branch\${NC}   — Выбрать ветку кабинета"
     echo -e "  \${GREEN}cabinet-status\${NC}   — Статус кабинета"
     echo -e "  \${GREEN}cabinet-logs\${NC}     — Логи cabinet_frontend"
     echo -e "  \${GREEN}cabinet-stop\${NC}     — Остановить кабинет"
@@ -1969,6 +2037,7 @@ case "\$CMD" in
     cabinet)    cabinet_menu ;;
     cabinet-install|cabinet-setup) do_cabinet_install ;;
     cabinet-update|cabinet-upgrade) do_cabinet_update ;;
+    cabinet-branch|cabinet-branch-select) select_cabinet_branch_interactive ;;
     cabinet-status|cabinet-info) do_cabinet_status ;;
     cabinet-logs|cabinet-log) do_cabinet_logs ;;
     cabinet-stop) do_cabinet_stop ;;
