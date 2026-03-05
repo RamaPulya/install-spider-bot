@@ -1299,6 +1299,25 @@ do_config() {
     echo -e "\${YELLOW}Перезапустите бота для применения: bot restart\${NC}"
 }
 
+do_compose_edit() {
+    check_install_dir
+    local compose_path="\$INSTALL_DIR/\$COMPOSE_FILE"
+    preflight_action "compose-edit" true false false false false 128 "\$compose_path" true || return \$?
+    touch "\$compose_path" 2>/dev/null || true
+    echo -e "\${CYAN}✏️  Редактирование \$compose_path\${NC}"
+    \${EDITOR:-nano} "\$compose_path"
+    echo -e "\${YELLOW}После правок примените: bot restart\${NC}"
+}
+
+do_caddyfile_edit() {
+    local caddy_file="\$CABINET_CADDY_DIR/Caddyfile"
+    preflight_action "caddyfile-edit" true false true false false 128 "\$caddy_file" true || return \$?
+    touch "\$caddy_file"
+    echo -e "\${CYAN}✏️  Редактирование \$caddy_file\${NC}"
+    \${EDITOR:-nano} "\$caddy_file"
+    echo -e "\${YELLOW}После правок примените: bot cabinet-caddy-recreate\${NC}"
+}
+
 ensure_cabinet_network() {
     if ! docker network ls --format '{{.Name}}' | grep -q "^\$CABINET_NETWORK_NAME\$"; then
         echo -e "\${YELLOW}Создаём Docker-сеть \$CABINET_NETWORK_NAME...\${NC}"
@@ -1948,12 +1967,14 @@ show_menu() {
     echo -e "  \${CYAN}1)\${NC} 📋 Логи              \${CYAN}6)\${NC} 💾 Создать бэкап"
     echo -e "  \${CYAN}2)\${NC} 📊 Статус            \${CYAN}7)\${NC} 🏥 Диагностика"
     echo -e "  \${CYAN}3)\${NC} 🔄 Перезапуск        \${CYAN}8)\${NC} ⚙ Редактировать .env"
-    echo -e "  \${CYAN}4)\${NC} ▶ Запуск             \${CYAN}9)\${NC} 📦 Обновить бота"
-    echo -e "  \${CYAN}5)\${NC} ⏹ Остановка          \${CYAN}10)\${NC} 🛠 Обновить скрипт"
+    echo -e "  \${CYAN}4)\${NC} ▶ Запуск             \${CYAN}9)\${NC} 📝 Редактировать compose"
+    echo -e "  \${CYAN}5)\${NC} ⏹ Остановка          \${CYAN}10)\${NC} 📝 Редактировать Caddyfile"
     echo -e "  \${CYAN}i)\${NC} 🔧 Установщик        \${CYAN}L)\${NC} 🗑 Удаление"
     echo
-    echo -e "  \${CYAN}11)\${NC} ℹ Версия"
-    echo -e "  \${CYAN}12)\${NC} 🧩 Cabinet"
+    echo -e "  \${CYAN}11)\${NC} 📦 Обновить бота"
+    echo -e "  \${CYAN}12)\${NC} 🛠 Обновить скрипт"
+    echo -e "  \${CYAN}13)\${NC} ℹ Версия"
+    echo -e "  \${CYAN}14)\${NC} 🧩 Cabinet"
     echo -e "  \${CYAN}q)\${NC} 🚪 Выход"
     echo
 }
@@ -1973,10 +1994,12 @@ interactive_menu() {
             6) do_backup; read -p "Нажмите Enter..." ;;
             7) do_health; read -p "Нажмите Enter..." ;;
             8) do_config ;;
-            9) update_menu ;;
-            10) update_installer; read -p "Нажмите Enter..." ;;
-            11) show_version; read -p "Нажмите Enter..." ;;
-            12) cabinet_menu ;;
+            9) do_compose_edit ;;
+            10) do_caddyfile_edit ;;
+            11) update_menu ;;
+            12) update_installer; read -p "Нажмите Enter..." ;;
+            13) show_version; read -p "Нажмите Enter..." ;;
+            14) cabinet_menu ;;
             i|I) do_install; read -p "Нажмите Enter..." ;;
             l|L) do_uninstall; break ;;
             q|Q|exit) echo -e "\${GREEN}До свидания!\${NC}"; exit 0 ;;
@@ -2004,6 +2027,8 @@ show_help() {
     echo -e "  \${GREEN}backup\${NC}     — Резервная копия"
     echo -e "  \${GREEN}health\${NC}     — Диагностика"
     echo -e "  \${GREEN}config\${NC}     — Редактировать .env"
+    echo -e "  \${GREEN}compose-edit\${NC} — Редактировать \$COMPOSE_FILE"
+    echo -e "  \${GREEN}caddy-edit\${NC} — Редактировать Caddyfile (/opt/caddy-remnawave/Caddyfile)"
     echo -e "  \${GREEN}install\${NC}    — Запустить установщик"
     echo -e "  \${GREEN}installer\${NC}  — Обновить скрипты установщика"
     echo -e "  \${GREEN}cabinet-install\${NC}  — Установить кабинет"
@@ -2032,6 +2057,8 @@ case "\$CMD" in
     backup)     do_backup ;;
     health|check) do_health ;;
     config|edit) do_config ;;
+    compose-edit|compose) do_compose_edit ;;
+    caddy-edit|caddyfile-edit) do_caddyfile_edit ;;
     install|setup|reinstall) do_install ;;
     installer|installer-update) update_installer ;;
     cabinet)    cabinet_menu ;;
