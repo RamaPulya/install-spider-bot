@@ -321,10 +321,37 @@ find_install_dir() {
 
 normalize_repo_branch() {
     local branch="$1"
-    case "$branch" in
-        main|spiderman) echo "$branch" ;;
-        *) echo "spiderman" ;;
-    esac
+    branch="$(printf '%s' "$branch" | tr -d '\r' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+    if [ -z "$branch" ]; then
+        echo "spiderman"
+    else
+        echo "$branch"
+    fi
+}
+
+repo_branch_exists() {
+    local repo_url="$1"
+    local branch=""
+    branch="$(normalize_repo_branch "$2")"
+    [ -n "$branch" ] || return 1
+    git_with_auth ls-remote --exit-code --heads "$repo_url" "$branch" >/dev/null 2>&1
+}
+
+prompt_custom_repo_branch() {
+    local repo_url="$1"
+    local current_branch="$2"
+    local repo_label="$3"
+    local entered_branch=""
+
+    read -p "Введите имя ветки для ${repo_label}: " entered_branch < /dev/tty
+    entered_branch="$(normalize_repo_branch "$entered_branch")"
+
+    if ! repo_branch_exists "$repo_url" "$entered_branch"; then
+        echo -e "${RED}❌ Ветка ${entered_branch} не найдена в origin для ${repo_label}. Текущее значение оставлено: ${current_branch}${NC}" >&2
+        return 1
+    fi
+
+    printf '%s\n' "$entered_branch"
 }
 
 load_repo_branch_from_config() {
@@ -363,6 +390,7 @@ select_repo_branch_interactive() {
     echo -e "${WHITE}Выберите ветку для обновления бота:${NC}"
     echo -e "  ${CYAN}1)${NC} spiderman"
     echo -e "  ${CYAN}2)${NC} main"
+    echo -e "  ${CYAN}3)${NC} custom branch"
     echo -e "  ${CYAN}0)${NC} Отмена"
     echo
     read -p "Ваш выбор [1]: " branch_choice < /dev/tty
@@ -371,6 +399,13 @@ select_repo_branch_interactive() {
     case "$branch_choice" in
         1) REPO_BRANCH="spiderman" ;;
         2) REPO_BRANCH="main" ;;
+        3)
+            local custom_branch=""
+            if ! custom_branch="$(prompt_custom_repo_branch "$REPO_URL" "$REPO_BRANCH" "бота")"; then
+                return 1
+            fi
+            REPO_BRANCH="$custom_branch"
+            ;;
         0) return 1 ;;
         *)
             echo -e "${YELLOW}⚠️  Неверный выбор, оставляем ветку: ${REPO_BRANCH}${NC}"
@@ -820,10 +855,37 @@ check_install_dir() {
 
 normalize_repo_branch() {
     local branch="\$1"
-    case "\$branch" in
-        main|spiderman) echo "\$branch" ;;
-        *) echo "spiderman" ;;
-    esac
+    branch="\$(printf '%s' "\$branch" | tr -d '\r' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+    if [ -z "\$branch" ]; then
+        echo "spiderman"
+    else
+        echo "\$branch"
+    fi
+}
+
+repo_branch_exists() {
+    local repo_url="\$1"
+    local branch=""
+    branch="\$(normalize_repo_branch "\$2")"
+    [ -n "\$branch" ] || return 1
+    git_with_auth ls-remote --exit-code --heads "\$repo_url" "\$branch" >/dev/null 2>&1
+}
+
+prompt_custom_repo_branch() {
+    local repo_url="\$1"
+    local current_branch="\$2"
+    local repo_label="\$3"
+    local entered_branch=""
+
+    read -p "Введите имя ветки для \${repo_label}: " entered_branch
+    entered_branch="\$(normalize_repo_branch "\$entered_branch")"
+
+    if ! repo_branch_exists "\$repo_url" "\$entered_branch"; then
+        echo -e "\${RED}❌ Ветка \$entered_branch не найдена в origin для \${repo_label}. Текущее значение оставлено: \$current_branch\${NC}" >&2
+        return 1
+    fi
+
+    printf '%s\n' "\$entered_branch"
 }
 
 load_repo_branch_from_config() {
@@ -884,6 +946,7 @@ select_repo_branch_interactive() {
     echo -e "\${WHITE}Выберите ветку для обновления бота:\${NC}"
     echo -e "  \${CYAN}1)\${NC} spiderman"
     echo -e "  \${CYAN}2)\${NC} main"
+    echo -e "  \${CYAN}3)\${NC} custom branch"
     echo -e "  \${CYAN}0)\${NC} Отмена"
     echo
     read -p "Ваш выбор [1]: " branch_choice
@@ -892,6 +955,13 @@ select_repo_branch_interactive() {
     case "\$branch_choice" in
         1) REPO_BRANCH="spiderman" ;;
         2) REPO_BRANCH="main" ;;
+        3)
+            local custom_branch=""
+            if ! custom_branch="$(prompt_custom_repo_branch "$REPO_URL" "$REPO_BRANCH" "бота")"; then
+                return 1
+            fi
+            REPO_BRANCH="$custom_branch"
+            ;;
         0) return 1 ;;
         *)
             echo -e "\${YELLOW}⚠️  Неверный выбор, оставляем ветку: \$REPO_BRANCH\${NC}"
@@ -911,6 +981,7 @@ select_cabinet_branch_interactive() {
     echo -e "\${WHITE}Выберите ветку для установки и обновления кабинета:\${NC}"
     echo -e "  \${CYAN}1)\${NC} spiderman"
     echo -e "  \${CYAN}2)\${NC} main"
+    echo -e "  \${CYAN}3)\${NC} custom branch"
     echo -e "  \${CYAN}0)\${NC} Отмена"
     echo
     read -p "Ваш выбор [1]: " branch_choice
@@ -919,6 +990,13 @@ select_cabinet_branch_interactive() {
     case "\$branch_choice" in
         1) CABINET_BRANCH="spiderman" ;;
         2) CABINET_BRANCH="main" ;;
+        3)
+            local custom_branch=""
+            if ! custom_branch="$(prompt_custom_repo_branch "$CABINET_REPO_URL" "$CABINET_BRANCH" "кабинета")"; then
+                return 1
+            fi
+            CABINET_BRANCH="$custom_branch"
+            ;;
         0) return 1 ;;
         *)
             echo -e "\${YELLOW}⚠ Неверный выбор, оставляем ветку: \$CABINET_BRANCH\${NC}"
