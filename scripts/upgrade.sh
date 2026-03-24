@@ -957,10 +957,10 @@ select_repo_branch_interactive() {
         2) REPO_BRANCH="main" ;;
         3)
             local custom_branch=""
-            if ! custom_branch="$(prompt_custom_repo_branch "$REPO_URL" "$REPO_BRANCH" "бота")"; then
+            if ! custom_branch="\$(prompt_custom_repo_branch "\$REPO_URL" "\$REPO_BRANCH" "бота")"; then
                 return 1
             fi
-            REPO_BRANCH="$custom_branch"
+            REPO_BRANCH="\$custom_branch"
             ;;
         0) return 1 ;;
         *)
@@ -992,10 +992,10 @@ select_cabinet_branch_interactive() {
         2) CABINET_BRANCH="main" ;;
         3)
             local custom_branch=""
-            if ! custom_branch="$(prompt_custom_repo_branch "$CABINET_REPO_URL" "$CABINET_BRANCH" "кабинета")"; then
+            if ! custom_branch="\$(prompt_custom_repo_branch "\$CABINET_REPO_URL" "\$CABINET_BRANCH" "кабинета")"; then
                 return 1
             fi
-            CABINET_BRANCH="$custom_branch"
+            CABINET_BRANCH="\$custom_branch"
             ;;
         0) return 1 ;;
         *)
