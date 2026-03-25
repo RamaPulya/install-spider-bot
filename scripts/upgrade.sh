@@ -18,6 +18,7 @@ NC='\033[0m'
 REPO_BRANCH="spiderman"
 FORCE_INSTALL_BOT_COMMAND="${FORCE_INSTALL_BOT_COMMAND:-false}"
 
+REPO_URL="https://github.com/RamaPulya/spiderbot.git"
 INSTALLER_REPO_URL="https://github.com/RamaPulya/install-spider-bot.git"
 INSTALLER_RAW_BASE_URL="https://raw.githubusercontent.com/RamaPulya/install-spider-bot/spiderman"
 INSTALLER_ENV_FILE="${INSTALLER_ENV_FILE:-/root/.config/bedolaga/installer.env}"
@@ -548,6 +549,7 @@ INSTALLER_DIR="$INSTALL_DIR/.installer"
 REPO_BRANCH="$REPO_BRANCH"
 INSTALL_CONFIG_FILE="$INSTALL_DIR/.install_config"
 
+REPO_URL="https://github.com/RamaPulya/spiderbot.git"
 INSTALLER_REPO_URL="https://github.com/RamaPulya/install-spider-bot.git"
 INSTALLER_RAW_BASE_URL="https://raw.githubusercontent.com/RamaPulya/install-spider-bot/spiderman"
 INSTALLER_ENV_FILE="\${INSTALLER_ENV_FILE:-/root/.config/bedolaga/installer.env}"
