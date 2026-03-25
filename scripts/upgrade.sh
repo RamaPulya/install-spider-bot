@@ -1590,6 +1590,25 @@ show_cabinet_update_info() {
     return 0
 }
 
+cabinet_update_menu() {
+    set +e
+    while true; do
+        show_cabinet_update_info || true
+        echo -e "\${WHITE}Р’С‹Р±РµСЂРёС‚Рµ РґРµР№СЃС‚РІРёРµ:\${NC}"
+        echo -e "  \${CYAN}1)\${NC} 📦 Обновить кабинет"
+        echo -e "  \${CYAN}2)\${NC} 🌿 Выбрать ветку"
+        echo -e "  \${CYAN}0)\${NC} Назад"
+        echo
+        read -p "Р’Р°С€ РІС‹Р±РѕСЂ: " choice
+        case \$choice in
+            1) do_cabinet_update; read -p "РќР°Р¶РјРёС‚Рµ Enter..." ;;
+            2) select_cabinet_branch_interactive; read -p "РќР°Р¶РјРёС‚Рµ Enter..." ;;
+            0) return ;;
+            *) echo -e "\${RED}РќРµРІРµСЂРЅС‹Р№ РІС‹Р±РѕСЂ\${NC}"; sleep 1 ;;
+        esac
+    done
+}
+
 do_cabinet_update() {
     preflight_action "cabinet-update" true true true true true 512 "\$CABINET_DIR" true || return \$?
     load_cabinet_branch_from_config
@@ -1820,8 +1839,9 @@ cabinet_menu() {
         read -p "Ваш выбор: " cabinet_choice
         case \$cabinet_choice in
             1) do_cabinet_install; read -p "Нажмите Enter..." ;;
-            2)
-                if show_cabinet_update_info; then
+            2) cabinet_update_menu ;;
+            9999)
+                if false; then
                     if cabinet_prompt_yes_no "Обновить кабинет сейчас?" "false"; then
                         do_cabinet_update
                     else
