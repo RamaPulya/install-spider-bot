@@ -391,7 +391,7 @@ select_repo_branch_interactive() {
     echo -e "${WHITE}Выберите ветку для обновления бота:${NC}"
     echo -e "  ${CYAN}1)${NC} spiderman"
     echo -e "  ${CYAN}2)${NC} main"
-    echo -e "  ${CYAN}3)${NC} spiderman-merge-test"
+    echo -e "  ${CYAN}3)${NC} spiderman-merge"
     echo -e "  ${CYAN}0)${NC} Отмена"
     echo
     read -p "Ваш выбор [1]: " branch_choice < /dev/tty
@@ -400,7 +400,7 @@ select_repo_branch_interactive() {
     case "$branch_choice" in
         1) REPO_BRANCH="spiderman" ;;
         2) REPO_BRANCH="main" ;;
-        3) REPO_BRANCH="spiderman-merge-test" ;;
+        3) REPO_BRANCH="spiderman-merge" ;;
         0) return 1 ;;
         *)
             echo -e "${YELLOW}⚠️  Неверный выбор, оставляем ветку: ${REPO_BRANCH}${NC}"
@@ -942,7 +942,7 @@ select_repo_branch_interactive() {
     echo -e "\${WHITE}Выберите ветку для обновления бота:\${NC}"
     echo -e "  \${CYAN}1)\${NC} spiderman"
     echo -e "  \${CYAN}2)\${NC} main"
-    echo -e "  \${CYAN}3)\${NC} spiderman-merge-test"
+    echo -e "  \${CYAN}3)\${NC} spiderman-merge"
     echo -e "  \${CYAN}0)\${NC} Отмена"
     echo
     read -p "Ваш выбор [1]: " branch_choice
@@ -951,7 +951,7 @@ select_repo_branch_interactive() {
     case "\$branch_choice" in
         1) REPO_BRANCH="spiderman" ;;
         2) REPO_BRANCH="main" ;;
-        3) REPO_BRANCH="spiderman-merge-test" ;;
+        3) REPO_BRANCH="spiderman-merge" ;;
         0) return 1 ;;
         *)
             echo -e "\${YELLOW}⚠️  Неверный выбор, оставляем ветку: \$REPO_BRANCH\${NC}"
@@ -971,7 +971,7 @@ select_cabinet_branch_interactive() {
     echo -e "\${WHITE}Выберите ветку для установки и обновления кабинета:\${NC}"
     echo -e "  \${CYAN}1)\${NC} spiderman"
     echo -e "  \${CYAN}2)\${NC} main"
-    echo -e "  \${CYAN}3)\${NC} spiderman-merge-test"
+    echo -e "  \${CYAN}3)\${NC} spiderman-merge"
     echo -e "  \${CYAN}0)\${NC} Отмена"
     echo
     read -p "Ваш выбор [1]: " branch_choice
@@ -980,7 +980,7 @@ select_cabinet_branch_interactive() {
     case "\$branch_choice" in
         1) CABINET_BRANCH="spiderman" ;;
         2) CABINET_BRANCH="main" ;;
-        3) CABINET_BRANCH="spiderman-merge-test" ;;
+        3) CABINET_BRANCH="spiderman-merge" ;;
         0) return 1 ;;
         *)
             echo -e "\${YELLOW}⚠ Неверный выбор, оставляем ветку: \$CABINET_BRANCH\${NC}"
