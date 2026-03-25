@@ -1594,17 +1594,17 @@ cabinet_update_menu() {
     set +e
     while true; do
         show_cabinet_update_info || true
-        echo -e "\${WHITE}Р’С‹Р±РµСЂРёС‚Рµ РґРµР№СЃС‚РІРёРµ:\${NC}"
-        echo -e "  \${CYAN}1)\${NC} 📦 Обновить кабинет"
-        echo -e "  \${CYAN}2)\${NC} 🌿 Выбрать ветку"
-        echo -e "  \${CYAN}0)\${NC} Назад"
+        echo -e "\${WHITE}Choose action:\${NC}"
+        echo -e "  \${CYAN}1)\${NC} Update cabinet"
+        echo -e "  \${CYAN}2)\${NC} Select branch"
+        echo -e "  \${CYAN}0)\${NC} Back"
         echo
-        read -p "Р’Р°С€ РІС‹Р±РѕСЂ: " choice
+        read -p "Your choice: " choice
         case \$choice in
-            1) do_cabinet_update; read -p "РќР°Р¶РјРёС‚Рµ Enter..." ;;
-            2) select_cabinet_branch_interactive; read -p "РќР°Р¶РјРёС‚Рµ Enter..." ;;
+            1) do_cabinet_update; read -p "Press Enter..." ;;
+            2) select_cabinet_branch_interactive; read -p "Press Enter..." ;;
             0) return ;;
-            *) echo -e "\${RED}РќРµРІРµСЂРЅС‹Р№ РІС‹Р±РѕСЂ\${NC}"; sleep 1 ;;
+            *) echo -e "\${RED}Invalid choice\${NC}"; sleep 1 ;;
         esac
     done
 }
