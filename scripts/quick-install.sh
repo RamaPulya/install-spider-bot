@@ -8,7 +8,7 @@ REPO_BRANCH="${REPO_BRANCH:-spiderman}"
 BOOTSTRAP_DIR="${BOOTSTRAP_DIR:-/tmp/bedolaga-installer-bootstrap}"
 TARBALL_URL="${TARBALL_URL:-https://codeload.github.com/${REPO_OWNER}/${REPO_NAME}/tar.gz/refs/heads/${REPO_BRANCH}}"
 GITHUB_OWNER_FALLBACK="${GITHUB_OWNER_FALLBACK:-RamaPulya}"
-BOOTSTRAP_VERSION="${BOOTSTRAP_VERSION:-2026.04.16-5}"
+BOOTSTRAP_VERSION="${BOOTSTRAP_VERSION:-2026.04.16-6}"
 
 APT_INSTALL_OPTS=(
   -y
@@ -174,7 +174,7 @@ def repl(match):
     options = f"{left}{right}"
     options = re.sub(r'\s+', ' ', options).rstrip()
     if options:
-      return f"{before}{options}{tail}"
+        return f"{before}{options}{tail}"
     return f"{before}{tail}"
 
 path.write_text(pattern.sub(repl, text), encoding="utf-8", newline="\n")
@@ -218,73 +218,6 @@ PY
 
   if (( changed == 0 )); then
     log "No single-key prompts were found in installer scripts."
-  fi
-}
-
-patch_github_token_urls() {
-  local repo_root="$1"
-  local file
-  local changed=0
-
-  while IFS= read -r -d '' file; do
-    if grep -Eq 'https://.+@github\.com/' "${file}"; then
-      cp "${file}" "${file}.bak"
-      python3 - "${file}" "${GITHUB_OWNER_FALLBACK}" <<'PY'
-from pathlib import Path
-import re
-import sys
-
-path = Path(sys.argv[1])
-owner = sys.argv[2]
-text = path.read_text(encoding="utf-8")
-
-text = re.sub(
-    r'https://(\$\{?[A-Za-z_][A-Za-z0-9_]*\}?)(@github\.com/)',
-    lambda m: f'https://{owner}:{m.group(1)}{m.group(2)}',
-    text,
-)
-text = re.sub(
-    r'https://(github_pat_[A-Za-z0-9_]+)(@github\.com/)',
-    lambda m: f'https://{owner}:{m.group(1)}{m.group(2)}',
-    text,
-)
-text = re.sub(
-    r'https://(["\']?\$[A-Za-z_][A-Za-z0-9_]*["\']?)(@github\.com/)',
-    lambda m: f'https://{owner}:{m.group(1)}{m.group(2)}',
-    text,
-)
-
-path.write_text(text, encoding="utf-8", newline="\n")
-PY
-      changed=1
-      log "Patched GitHub token URL in: ${file#${repo_root}/}"
-    fi
-  done < <(find "${repo_root}" -type f \( -name '*.sh' -o -name '*.bash' -o -name '*.env' \) -print0)
-
-  if (( changed == 0 )); then
-    log "No broken GitHub token URLs were found in installer files."
-  fi
-}
-
-sanitize_git_invocations() {
-  local repo_root="$1"
-  local file
-  local changed=0
-
-  while IFS= read -r -d '' file; do
-    if grep -Eq '/usr/bin/git|command[[:space:]]+git' "${file}"; then
-      cp "${file}" "${file}.bak"
-      sed -E -i \
-        -e 's@/usr/bin/git@git@g' \
-        -e 's@command[[:space:]]+git@git@g' \
-        "${file}"
-      changed=1
-      log "Patched direct git invocation in: ${file#${repo_root}/}"
-    fi
-  done < <(find "${repo_root}" -type f \( -name '*.sh' -o -name '*.bash' \) -print0)
-
-  if (( changed == 0 )); then
-    log "No direct /usr/bin/git or command git invocations were found."
   fi
 }
 
@@ -354,19 +287,24 @@ PY
   fi
 }
 
-configure_global_github_auth() {
+configure_git_auth_env() {
   local token=""
   local owner="${GITHUB_OWNER_FALLBACK}"
 
   token="$(read_github_token || true)"
   if [[ -z "${token}" ]]; then
-    log "No GitHub token found for global auth configuration."
+    log "No GitHub token found. HTTPS clone will use public access only."
     return 0
   fi
 
-  git config --global url."https://${owner}:${token}@github.com/".insteadOf "https://github.com/"
-  git config --global url."https://${owner}:${token}@github.com/".insteadOf "https://${token}@github.com/"
-  log "Configured global GitHub auth rewrite for HTTPS clone URLs."
+  export GIT_TERMINAL_PROMPT=0
+  export GIT_CONFIG_COUNT=2
+  export GIT_CONFIG_KEY_0="url.https://${owner}:${token}@github.com/.insteadOf"
+  export GIT_CONFIG_VALUE_0="https://github.com/"
+  export GIT_CONFIG_KEY_1="url.https://${owner}:${token}@github.com/.insteadOf"
+  export GIT_CONFIG_VALUE_1="https://${token}@github.com/"
+
+  log "Configured Git HTTPS rewrite for private GitHub repositories."
 }
 
 preflight_private_repo_auth() {
@@ -388,113 +326,6 @@ preflight_private_repo_auth() {
   fail "GitHub token check failed for ${target_repo}. The token is missing access to the private repo, expired, or invalid."
 }
 
-setup_git_wrapper() {
-  local real_git
-  local wrapper_dir
-  local wrapper_path
-  local askpass_path
-
-  real_git="$(command -v git)"
-  [[ -n "${real_git}" ]] || fail "git binary was not found in PATH."
-
-  wrapper_dir="${BOOTSTRAP_DIR}/bin"
-  wrapper_path="${wrapper_dir}/git"
-  askpass_path="${wrapper_dir}/git-askpass.sh"
-  mkdir -p "${wrapper_dir}"
-
-  cat > "${wrapper_path}" <<EOF
-#!/usr/bin/env bash
-set -Eeuo pipefail
-
-REAL_GIT="${real_git}"
-TOKEN_FILE_USER="/root/.config/bedolaga/installer.env"
-TOKEN_FILE_SYSTEM="/etc/bedolaga/installer.env"
-GITHUB_OWNER_FALLBACK="${GITHUB_OWNER_FALLBACK}"
-
-load_token() {
-  local token=""
-  local file
-
-  for file in "\${TOKEN_FILE_USER}" "\${TOKEN_FILE_SYSTEM}"; do
-    if [[ -f "\${file}" ]]; then
-      token="$(sed -n 's/^GITHUB_TOKEN=//p' "\${file}" | tail -n 1)"
-      token="\${token%\"}"
-      token="\${token#\"}"
-      if [[ -n "\${token}" ]]; then
-        printf '%s\n' "\${token}"
-        return 0
-      fi
-    fi
-  done
-
-  return 1
-}
-
-main() {
-  local token=""
-  local owner="\${GITHUB_OWNER_FALLBACK}"
-
-  token="$(load_token || true)"
-  if [[ -n "\${token}" ]]; then
-    exec "\${REAL_GIT}" \
-      -c "url.https://\${owner}:\${token}@github.com/.insteadOf=https://github.com/" \
-      -c "url.https://\${owner}:\${token}@github.com/.insteadOf=https://\${token}@github.com/" \
-      "\$@"
-  fi
-
-  exec "\${REAL_GIT}" "\$@"
-}
-
-main "\$@"
-EOF
-
-  cat > "${askpass_path}" <<EOF
-#!/usr/bin/env bash
-set -Eeuo pipefail
-
-PROMPT="\${1:-}"
-TOKEN_FILE_USER="/root/.config/bedolaga/installer.env"
-TOKEN_FILE_SYSTEM="/etc/bedolaga/installer.env"
-GITHUB_OWNER_FALLBACK="${GITHUB_OWNER_FALLBACK}"
-
-load_token() {
-  local token=""
-  local file
-
-  for file in "\${TOKEN_FILE_USER}" "\${TOKEN_FILE_SYSTEM}"; do
-    if [[ -f "\${file}" ]]; then
-      token="$(sed -n 's/^GITHUB_TOKEN=//p' "\${file}" | tail -n 1)"
-      token="\${token%\"}"
-      token="\${token#\"}"
-      if [[ -n "\${token}" ]]; then
-        printf '%s\n' "\${token}"
-        return 0
-      fi
-    fi
-  done
-  return 1
-}
-
-case "\${PROMPT}" in
-  Username*|*Username*)
-    printf '%s\n' "\${GITHUB_OWNER_FALLBACK}"
-    ;;
-  Password*|*Password*)
-    load_token || printf '\n'
-    ;;
-  *)
-    load_token || printf '\n'
-    ;;
-esac
-EOF
-
-  chmod +x "${wrapper_path}" "${askpass_path}"
-  export PATH="${wrapper_dir}:${PATH}"
-  export GIT_ASKPASS="${askpass_path}"
-  export SSH_ASKPASS="${askpass_path}"
-  export GIT_TERMINAL_PROMPT=0
-}
-
 main() {
   local repo_root
   local installer_path
@@ -512,10 +343,7 @@ main() {
   sanitize_system_upgrade_steps "${repo_root}"
   sanitize_hidden_secret_prompts "${repo_root}"
   sanitize_single_key_prompts "${repo_root}"
-  patch_github_token_urls "${repo_root}"
-  sanitize_git_invocations "${repo_root}"
-  setup_git_wrapper
-  configure_global_github_auth
+  configure_git_auth_env
   print_runtime_version "${repo_root}"
   inject_interactive_version_banner "${repo_root}"
   preflight_private_repo_auth
