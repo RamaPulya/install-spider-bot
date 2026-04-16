@@ -8,6 +8,7 @@ REPO_BRANCH="${REPO_BRANCH:-spiderman}"
 BOOTSTRAP_DIR="${BOOTSTRAP_DIR:-/tmp/bedolaga-installer-bootstrap}"
 TARBALL_URL="${TARBALL_URL:-https://codeload.github.com/${REPO_OWNER}/${REPO_NAME}/tar.gz/refs/heads/${REPO_BRANCH}}"
 GITHUB_OWNER_FALLBACK="${GITHUB_OWNER_FALLBACK:-RamaPulya}"
+BOOTSTRAP_VERSION="${BOOTSTRAP_VERSION:-2026.04.16-3}"
 
 APT_INSTALL_OPTS=(
   -y
@@ -30,6 +31,8 @@ print_banner() {
 REMNAWAVE BEDOLAGA BOT - QUICK INSTALL
 ============================================================
 EOF
+  log "Bootstrap version: ${BOOTSTRAP_VERSION}"
+  log "Repository: ${REPO_OWNER}/${REPO_NAME}@${REPO_BRANCH}"
 }
 
 require_root() {
@@ -121,6 +124,117 @@ sanitize_system_upgrade_steps() {
   if (( changed == 0 )); then
     log "No full OS upgrade commands were found in installer scripts."
   fi
+}
+
+sanitize_hidden_secret_prompts() {
+  local repo_root="$1"
+  local file
+  local changed=0
+
+  while IFS= read -r -d '' file; do
+    if grep -Eq '(^|[[:space:]])read[[:space:]].*-s([[:space:]]|$)' "${file}"; then
+      cp "${file}" "${file}.bak"
+      python3 - "${file}" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+path = Path(sys.argv[1])
+text = path.read_text(encoding="utf-8")
+
+pattern = re.compile(r'(^[ \t]*read\b[^\n#]*?)((?:\s+-[A-Za-z-]*)*?)\s+-s\b((?:\s+-[A-Za-z-]*)*?)([^\n]*)$', re.MULTILINE)
+
+def repl(match):
+    before = match.group(1)
+    left = match.group(2) or ""
+    right = match.group(3) or ""
+    tail = match.group(4) or ""
+    options = f"{left}{right}"
+    options = re.sub(r'\s+', ' ', options).rstrip()
+    if options:
+        return f"{before}{options}{tail}"
+    return f"{before}{tail}"
+
+new_text = pattern.sub(repl, text)
+path.write_text(new_text, encoding="utf-8", newline="\n")
+PY
+      changed=1
+      log "Patched hidden prompt in: ${file#${repo_root}/}"
+    fi
+  done < <(find "${repo_root}" -type f \( -name '*.sh' -o -name '*.bash' \) -print0)
+
+  if (( changed == 0 )); then
+    log "No hidden secret prompts were found in installer scripts."
+  fi
+}
+
+patch_github_token_urls() {
+  local repo_root="$1"
+  local file
+  local changed=0
+
+  while IFS= read -r -d '' file; do
+    if grep -Eq 'https://(\$\{?[A-Za-z_][A-Za-z0-9_]*\}?|github_pat_[A-Za-z0-9_]+)@github\.com/' "${file}"; then
+      cp "${file}" "${file}.bak"
+      python3 - "${file}" "${GITHUB_OWNER_FALLBACK}" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+path = Path(sys.argv[1])
+owner = sys.argv[2]
+text = path.read_text(encoding="utf-8")
+
+# https://${VAR}@github.com/org/repo.git -> https://owner:${VAR}@github.com/org/repo.git
+text = re.sub(
+    r'https://(\$\{?[A-Za-z_][A-Za-z0-9_]*\}?)(@github\.com/)',
+    lambda m: f'https://{owner}:{m.group(1)}{m.group(2)}',
+    text,
+)
+
+# https://github_pat_xxx@github.com/org/repo.git -> https://owner:github_pat_xxx@github.com/org/repo.git
+text = re.sub(
+    r'https://(github_pat_[A-Za-z0-9_]+)(@github\.com/)',
+    lambda m: f'https://{owner}:{m.group(1)}{m.group(2)}',
+    text,
+)
+
+path.write_text(text, encoding="utf-8", newline="\n")
+PY
+      changed=1
+      log "Patched GitHub token URL in: ${file#${repo_root}/}"
+    fi
+  done < <(find "${repo_root}" -type f \( -name '*.sh' -o -name '*.bash' -o -name '*.env' \) -print0)
+
+  if (( changed == 0 )); then
+    log "No broken GitHub token URLs were found in installer files."
+  fi
+}
+
+read_installer_version() {
+  local repo_root="$1"
+  local version_file=""
+
+  for version_file in \
+    "${repo_root}/scripts/VERSION" \
+    "${repo_root}/VERSION"
+  do
+    if [[ -f "${version_file}" ]]; then
+      tr -d '\r' < "${version_file}" | head -n 1
+      return 0
+    fi
+  done
+
+  printf 'unknown\n'
+}
+
+print_runtime_version() {
+  local repo_root="$1"
+  local installer_version
+
+  installer_version="$(read_installer_version "${repo_root}")"
+  log "Installer version: ${installer_version}"
+  log "Update marker: bootstrap ${BOOTSTRAP_VERSION} / installer ${installer_version}"
 }
 
 setup_git_wrapper() {
@@ -221,7 +335,10 @@ main() {
   repo_root="$(find_repo_root)"
   installer_path="$(find_installer "${repo_root}")" || fail "install.sh was not found in the repository archive. Checked: install.sh, scripts/install.sh, installer/install.sh, .installer/install.sh"
   sanitize_system_upgrade_steps "${repo_root}"
+  sanitize_hidden_secret_prompts "${repo_root}"
+  patch_github_token_urls "${repo_root}"
   setup_git_wrapper
+  print_runtime_version "${repo_root}"
 
   chmod +x "${installer_path}"
 
