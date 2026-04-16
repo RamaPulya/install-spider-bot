@@ -8,7 +8,7 @@ REPO_BRANCH="${REPO_BRANCH:-spiderman}"
 BOOTSTRAP_DIR="${BOOTSTRAP_DIR:-/tmp/bedolaga-installer-bootstrap}"
 TARBALL_URL="${TARBALL_URL:-https://codeload.github.com/${REPO_OWNER}/${REPO_NAME}/tar.gz/refs/heads/${REPO_BRANCH}}"
 GITHUB_OWNER_FALLBACK="${GITHUB_OWNER_FALLBACK:-RamaPulya}"
-BOOTSTRAP_VERSION="${BOOTSTRAP_VERSION:-2026.04.16-3}"
+BOOTSTRAP_VERSION="${BOOTSTRAP_VERSION:-2026.04.16-4}"
 
 APT_INSTALL_OPTS=(
   -y
@@ -43,6 +43,10 @@ require_root() {
 
 wait_for_dpkg_lock() {
   local attempts=0
+
+  if ! command -v fuser >/dev/null 2>&1; then
+    return 0
+  fi
 
   while fuser /var/lib/dpkg/lock >/dev/null 2>&1 || fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
     attempts=$((attempts + 1))
@@ -141,7 +145,6 @@ import sys
 
 path = Path(sys.argv[1])
 text = path.read_text(encoding="utf-8")
-
 pattern = re.compile(r'(^[ \t]*read\b[^\n#]*?)((?:\s+-[A-Za-z-]*)*?)\s+-s\b((?:\s+-[A-Za-z-]*)*?)([^\n]*)$', re.MULTILINE)
 
 def repl(match):
@@ -155,8 +158,7 @@ def repl(match):
         return f"{before}{options}{tail}"
     return f"{before}{tail}"
 
-new_text = pattern.sub(repl, text)
-path.write_text(new_text, encoding="utf-8", newline="\n")
+path.write_text(pattern.sub(repl, text), encoding="utf-8", newline="\n")
 PY
       changed=1
       log "Patched hidden prompt in: ${file#${repo_root}/}"
@@ -174,7 +176,7 @@ patch_github_token_urls() {
   local changed=0
 
   while IFS= read -r -d '' file; do
-    if grep -Eq 'https://(\$\{?[A-Za-z_][A-Za-z0-9_]*\}?|github_pat_[A-Za-z0-9_]+)@github\.com/' "${file}"; then
+    if grep -Eq 'https://.+@github\.com/' "${file}"; then
       cp "${file}" "${file}.bak"
       python3 - "${file}" "${GITHUB_OWNER_FALLBACK}" <<'PY'
 from pathlib import Path
@@ -185,16 +187,18 @@ path = Path(sys.argv[1])
 owner = sys.argv[2]
 text = path.read_text(encoding="utf-8")
 
-# https://${VAR}@github.com/org/repo.git -> https://owner:${VAR}@github.com/org/repo.git
 text = re.sub(
     r'https://(\$\{?[A-Za-z_][A-Za-z0-9_]*\}?)(@github\.com/)',
     lambda m: f'https://{owner}:{m.group(1)}{m.group(2)}',
     text,
 )
-
-# https://github_pat_xxx@github.com/org/repo.git -> https://owner:github_pat_xxx@github.com/org/repo.git
 text = re.sub(
     r'https://(github_pat_[A-Za-z0-9_]+)(@github\.com/)',
+    lambda m: f'https://{owner}:{m.group(1)}{m.group(2)}',
+    text,
+)
+text = re.sub(
+    r'https://(["\']?\$[A-Za-z_][A-Za-z0-9_]*["\']?)(@github\.com/)',
     lambda m: f'https://{owner}:{m.group(1)}{m.group(2)}',
     text,
 )
@@ -208,6 +212,28 @@ PY
 
   if (( changed == 0 )); then
     log "No broken GitHub token URLs were found in installer files."
+  fi
+}
+
+sanitize_git_invocations() {
+  local repo_root="$1"
+  local file
+  local changed=0
+
+  while IFS= read -r -d '' file; do
+    if grep -Eq '/usr/bin/git|command[[:space:]]+git' "${file}"; then
+      cp "${file}" "${file}.bak"
+      sed -E -i \
+        -e 's@/usr/bin/git@git@g' \
+        -e 's@command[[:space:]]+git@git@g' \
+        "${file}"
+      changed=1
+      log "Patched direct git invocation in: ${file#${repo_root}/}"
+    fi
+  done < <(find "${repo_root}" -type f \( -name '*.sh' -o -name '*.bash' \) -print0)
+
+  if (( changed == 0 )); then
+    log "No direct /usr/bin/git or command git invocations were found."
   fi
 }
 
@@ -235,18 +261,63 @@ print_runtime_version() {
   installer_version="$(read_installer_version "${repo_root}")"
   log "Installer version: ${installer_version}"
   log "Update marker: bootstrap ${BOOTSTRAP_VERSION} / installer ${installer_version}"
+  log "Interactive marker: QUICK=${BOOTSTRAP_VERSION} INSTALLER=${installer_version}"
+}
+
+inject_interactive_version_banner() {
+  local repo_root="$1"
+  local installer_version
+  local file
+  local changed=0
+
+  installer_version="$(read_installer_version "${repo_root}")"
+
+  while IFS= read -r -d '' file; do
+    if grep -Fq 'Начать установку? (y/N):' "${file}" && ! grep -Fq 'Interactive marker:' "${file}"; then
+      cp "${file}" "${file}.bak"
+      python3 - "${file}" "${BOOTSTRAP_VERSION}" "${installer_version}" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+bootstrap_version = sys.argv[2]
+installer_version = sys.argv[3]
+text = path.read_text(encoding="utf-8")
+
+banner = (
+    f'echo "Interactive marker: QUICK={bootstrap_version} INSTALLER={installer_version}"\n'
+    f'echo "Bootstrap version: {bootstrap_version}"\n'
+    f'echo "Installer version: {installer_version}"\n'
+)
+
+needle = 'read -p "Начать установку? (y/N):"'
+if needle in text:
+    text = text.replace(needle, banner + needle, 1)
+
+path.write_text(text, encoding="utf-8", newline="\n")
+PY
+      changed=1
+      log "Injected interactive version banner into: ${file#${repo_root}/}"
+    fi
+  done < <(find "${repo_root}" -type f \( -name '*.sh' -o -name '*.bash' \) -print0)
+
+  if (( changed == 0 )); then
+    log "No interactive install prompt was patched with version markers."
+  fi
 }
 
 setup_git_wrapper() {
   local real_git
   local wrapper_dir
   local wrapper_path
+  local askpass_path
 
   real_git="$(command -v git)"
   [[ -n "${real_git}" ]] || fail "git binary was not found in PATH."
 
   wrapper_dir="${BOOTSTRAP_DIR}/bin"
   wrapper_path="${wrapper_dir}/git"
+  askpass_path="${wrapper_dir}/git-askpass.sh"
   mkdir -p "${wrapper_dir}"
 
   cat > "${wrapper_path}" <<EOF
@@ -298,6 +369,7 @@ rewrite_url() {
 main() {
   local token=""
   local arg
+  local owner="\${GITHUB_OWNER_FALLBACK}"
   local rewritten=()
 
   token="$(load_token || true)"
@@ -310,15 +382,102 @@ main() {
     rewritten+=("$(rewrite_url "\${token}" "\${arg}")")
   done
 
-  exec "\${REAL_GIT}" "\${rewritten[@]}"
+  exec "\${REAL_GIT}" \
+    -c "url.https://\${owner}:\${token}@github.com/.insteadOf=https://github.com/" \
+    -c "url.https://\${owner}:\${token}@github.com/.insteadOf=https://\${token}@github.com/" \
+    "\${rewritten[@]}"
 }
 
 main "\$@"
 EOF
 
-  chmod +x "${wrapper_path}"
+  cat > "${askpass_path}" <<EOF
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+PROMPT="\${1:-}"
+TOKEN_FILE_USER="/root/.config/bedolaga/installer.env"
+TOKEN_FILE_SYSTEM="/etc/bedolaga/installer.env"
+GITHUB_OWNER_FALLBACK="${GITHUB_OWNER_FALLBACK}"
+
+load_token() {
+  local token=""
+  local file
+
+  for file in "\${TOKEN_FILE_USER}" "\${TOKEN_FILE_SYSTEM}"; do
+    if [[ -f "\${file}" ]]; then
+      token="$(sed -n 's/^GITHUB_TOKEN=//p' "\${file}" | tail -n 1)"
+      token="\${token%\"}"
+      token="\${token#\"}"
+      if [[ -n "\${token}" ]]; then
+        printf '%s\n' "\${token}"
+        return 0
+      fi
+    fi
+  done
+  return 1
+}
+
+case "\${PROMPT}" in
+  Username*|*Username*)
+    printf '%s\n' "\${GITHUB_OWNER_FALLBACK}"
+    ;;
+  Password*|*Password*)
+    load_token || printf '\n'
+    ;;
+  *)
+    load_token || printf '\n'
+    ;;
+esac
+EOF
+
+  chmod +x "${wrapper_path}" "${askpass_path}"
   export PATH="${wrapper_dir}:${PATH}"
   export BEDOLAGA_REAL_GIT="${real_git}"
+  export BEDOLAGA_GIT_ASKPASS="${askpass_path}"
+  export GIT_ASKPASS="${askpass_path}"
+  export SSH_ASKPASS="${askpass_path}"
+  export GIT_TERMINAL_PROMPT=0
+  export GITHUB_OWNER_FALLBACK
+
+  __bedolaga_load_github_token() {
+    local token=""
+    local file
+
+    for file in "/root/.config/bedolaga/installer.env" "/etc/bedolaga/installer.env"; do
+      if [[ -f "${file}" ]]; then
+        token="$(sed -n 's/^GITHUB_TOKEN=//p' "${file}" | tail -n 1)"
+        token="${token%\"}"
+        token="${token#\"}"
+        if [[ -n "${token}" ]]; then
+          printf '%s\n' "${token}"
+          return 0
+        fi
+      fi
+    done
+
+    return 1
+  }
+
+  git() {
+    local token=""
+    local owner="${GITHUB_OWNER_FALLBACK:-RamaPulya}"
+
+    token="$(__bedolaga_load_github_token || true)"
+
+    if [[ -n "${token}" ]]; then
+      "${BEDOLAGA_REAL_GIT}" \
+        -c "url.https://${owner}:${token}@github.com/.insteadOf=https://github.com/" \
+        -c "url.https://${owner}:${token}@github.com/.insteadOf=https://${token}@github.com/" \
+        "$@"
+      return $?
+    fi
+
+    "${BEDOLAGA_REAL_GIT}" "$@"
+  }
+
+  export -f __bedolaga_load_github_token
+  export -f git
 }
 
 main() {
@@ -329,16 +488,19 @@ main() {
   print_banner
 
   log "Installing base packages..."
-  apt_install ca-certificates curl wget git tar
+  apt_install ca-certificates curl wget git tar python3
 
   download_repo_tarball
   repo_root="$(find_repo_root)"
   installer_path="$(find_installer "${repo_root}")" || fail "install.sh was not found in the repository archive. Checked: install.sh, scripts/install.sh, installer/install.sh, .installer/install.sh"
+
   sanitize_system_upgrade_steps "${repo_root}"
   sanitize_hidden_secret_prompts "${repo_root}"
   patch_github_token_urls "${repo_root}"
+  sanitize_git_invocations "${repo_root}"
   setup_git_wrapper
   print_runtime_version "${repo_root}"
+  inject_interactive_version_banner "${repo_root}"
 
   chmod +x "${installer_path}"
 
