@@ -21,7 +21,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # URL репозитория бота
 REPO_URL="https://github.com/RamaPulya/spiderbot.git"
-REPO_BRANCH="spiderman"
+# Основной поток SpiderManVPN — merge-ветка. Legacy `spiderman` доступна
+# только как явный выбор в меню управления.
+REPO_BRANCH="spiderman-merge"
 
 # ===============================================
 # ПОДКЛЮЧЕНИЕ МОДУЛЕЙ

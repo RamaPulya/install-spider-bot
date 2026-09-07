@@ -89,6 +89,16 @@ EOF
         if [ -n "$MINIAPP_DOMAIN" ]; then
             cat << EOF
 https://${MINIAPP_DOMAIN} {
+    # Mini App and Telegram webhook may intentionally share one domain.
+    # Keep this explicit: the static fallback below otherwise returns 404
+    # to Telegram POST /webhook requests.
+    handle /webhook {
+        reverse_proxy remnawave_bot:8080 {
+            header_up X-Real-IP {remote_host}
+            header_up Host {host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
     handle /miniapp/* {
         reverse_proxy remnawave_bot:8080 {
             header_up X-Real-IP {remote_host}

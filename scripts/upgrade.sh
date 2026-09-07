@@ -15,7 +15,7 @@ CYAN='\033[0;36m'
 PURPLE='\033[0;35m'
 WHITE='\033[1;37m'
 NC='\033[0m'
-REPO_BRANCH="spiderman"
+REPO_BRANCH="spiderman-merge"
 FORCE_INSTALL_BOT_COMMAND="${FORCE_INSTALL_BOT_COMMAND:-false}"
 
 REPO_URL="https://github.com/RamaPulya/spiderbot.git"
@@ -23,7 +23,7 @@ INSTALLER_REPO_URL="https://github.com/RamaPulya/install-spider-bot.git"
 INSTALLER_RAW_BASE_URL="https://raw.githubusercontent.com/RamaPulya/install-spider-bot/spiderman"
 INSTALLER_ENV_FILE="${INSTALLER_ENV_FILE:-/root/.config/bedolaga/installer.env}"
 CABINET_REPO_URL="https://github.com/RamaPulya/spidercabinet.git"
-CABINET_BRANCH="spiderman"
+CABINET_BRANCH="spiderman-merge"
 CABINET_DIR="/opt/bedolaga-cabinet"
 CABINET_COMPOSE_FILE="docker-compose.yml"
 CABINET_OVERRIDE_FILE="docker-compose.override.yml"
@@ -394,8 +394,8 @@ select_repo_branch_interactive() {
     echo -e "  ${CYAN}3)${NC} spiderman-merge"
     echo -e "  ${CYAN}0)${NC} Отмена"
     echo
-    read -p "Ваш выбор [1]: " branch_choice < /dev/tty
-    branch_choice=${branch_choice:-1}
+    read -p "Ваш выбор [3]: " branch_choice < /dev/tty
+    branch_choice=${branch_choice:-3}
 
     case "$branch_choice" in
         1) REPO_BRANCH="spiderman" ;;
@@ -548,7 +548,7 @@ INSTALLER_REPO_URL="https://github.com/RamaPulya/install-spider-bot.git"
 INSTALLER_RAW_BASE_URL="https://raw.githubusercontent.com/RamaPulya/install-spider-bot/spiderman"
 INSTALLER_ENV_FILE="\${INSTALLER_ENV_FILE:-/root/.config/bedolaga/installer.env}"
 CABINET_REPO_URL="https://github.com/RamaPulya/spidercabinet.git"
-CABINET_BRANCH="spiderman"
+CABINET_BRANCH="spiderman-merge"
 CABINET_DIR="/opt/bedolaga-cabinet"
 CABINET_COMPOSE_FILE="docker-compose.yml"
 CABINET_OVERRIDE_FILE="docker-compose.override.yml"
@@ -945,8 +945,8 @@ select_repo_branch_interactive() {
     echo -e "  \${CYAN}3)\${NC} spiderman-merge"
     echo -e "  \${CYAN}0)\${NC} Отмена"
     echo
-    read -p "Ваш выбор [1]: " branch_choice
-    branch_choice=\${branch_choice:-1}
+    read -p "Ваш выбор [3]: " branch_choice
+    branch_choice=\${branch_choice:-3}
 
     case "\$branch_choice" in
         1) REPO_BRANCH="spiderman" ;;
@@ -974,8 +974,8 @@ select_cabinet_branch_interactive() {
     echo -e "  \${CYAN}3)\${NC} spiderman-merge"
     echo -e "  \${CYAN}0)\${NC} Отмена"
     echo
-    read -p "Ваш выбор [1]: " branch_choice
-    branch_choice=\${branch_choice:-1}
+    read -p "Ваш выбор [3]: " branch_choice
+    branch_choice=\${branch_choice:-3}
 
     case "\$branch_choice" in
         1) CABINET_BRANCH="spiderman" ;;
@@ -1438,7 +1438,17 @@ sync_cabinet_repo() {
     if [ -d "\$CABINET_DIR/.git" ]; then
         ensure_safe_directory "\$CABINET_DIR"
         cd "\$CABINET_DIR" || return 1
-        rm -f .git/index.lock .git/shallow.lock .git/FETCH_HEAD.lock .git/HEAD.lock 2>/dev/null || true
+        if find .git -maxdepth 1 -type f -name '*.lock' -print -quit | grep -q .; then
+            echo -e "\${RED}❌ В репозитории кабинета есть git lock-файл.\${NC}"
+            echo -e "\${YELLOW}Проверьте, не идёт ли другой git-процесс; lock-файлы установщик не удаляет.\${NC}"
+            return 1
+        fi
+        if [ -n "\$(git status --porcelain --untracked-files=no 2>/dev/null)" ]; then
+            echo -e "\${RED}❌ В репозитории кабинета есть незакоммиченные изменения.\${NC}"
+            echo -e "\${YELLOW}Установщик не будет выполнять reset --hard и стирать их.\${NC}"
+            echo -e "\${YELLOW}Сделайте commit/stash или восстановите чистое состояние вручную.\${NC}"
+            return 1
+        fi
         git remote set-url origin "\$CABINET_REPO_URL" >/dev/null 2>&1 || true
         if ! git_with_auth fetch --prune origin; then
             echo -e "\${RED}❌ Не удалось выполнить git fetch для кабинета\${NC}"
@@ -1496,8 +1506,17 @@ deploy_cabinet_frontend() {
     ensure_cabinet_network
     ensure_cabinet_override
 
+    # Keep Docker in the foreground. This is intentional: Ctrl+C must reach
+    # BuildKit immediately instead of leaving an orphaned resource-heavy build.
+    echo -e "\${CYAN}🏗️  Сборка cabinet-frontend...\${NC}"
+    echo -e "\${YELLOW}Vite может долго не печатать строки после 'modules transformed'; Ctrl+C безопасно отменяет сборку.\${NC}"
+    if ! run_cabinet_compose build --progress=plain "\$CABINET_SERVICE_NAME"; then
+        echo -e "\${RED}❌ Не удалось собрать cabinet-frontend\${NC}"
+        return 1
+    fi
+
     echo -e "\${CYAN}🐳 Запуск cabinet-frontend...\${NC}"
-    if ! run_cabinet_compose up -d --build --force-recreate "\$CABINET_SERVICE_NAME"; then
+    if ! run_cabinet_compose up -d --no-build --force-recreate "\$CABINET_SERVICE_NAME"; then
         echo -e "\${RED}❌ Не удалось запустить cabinet-frontend\${NC}"
         return 1
     fi
@@ -1507,10 +1526,32 @@ deploy_cabinet_frontend() {
     container_id=\$(resolve_cabinet_container_id)
     if cabinet_connected_to_network "\$container_id"; then
         echo -e "\${GREEN}✅ cabinet_frontend подключён к \$CABINET_NETWORK_NAME\${NC}"
-        return 0
+    else
+        echo -e "\${RED}❌ cabinet_frontend не подключён к \$CABINET_NETWORK_NAME\${NC}"
+        return 1
     fi
 
-    echo -e "\${RED}❌ cabinet_frontend не подключён к \$CABINET_NETWORK_NAME\${NC}"
+    local health=""
+    local attempts=0
+    while [ "\$attempts" -lt 30 ]; do
+        health=\$(docker inspect "\$container_id" --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' 2>/dev/null || true)
+        case "\$health" in
+            healthy|running)
+                echo -e "\${GREEN}✅ cabinet-frontend запущен (\$health)\${NC}"
+                return 0
+                ;;
+            exited|dead)
+                echo -e "\${RED}❌ cabinet-frontend завершился со статусом \$health\${NC}"
+                run_cabinet_compose logs --tail=80 "\$CABINET_SERVICE_NAME" 2>/dev/null || true
+                return 1
+                ;;
+        esac
+        attempts=\$((attempts + 1))
+        sleep 2
+    done
+
+    echo -e "\${YELLOW}⚠️ cabinet-frontend не стал healthy за 60с (текущий статус: \${health:-unknown})\${NC}"
+    run_cabinet_compose ps "\$CABINET_SERVICE_NAME" 2>/dev/null || true
     return 1
 }
 
@@ -2318,7 +2359,7 @@ fi
 if [ -f "$INSTALL_DIR/docker-compose.local.yml" ]; then
     COMPOSE_FILE="docker-compose.local.yml"
 fi
-REPO_BRANCH="$(normalize_repo_branch "${REPO_BRANCH:-spiderman}")"
+REPO_BRANCH="$(normalize_repo_branch "${REPO_BRANCH:-spiderman-merge}")"
 
 # Проверяем наличие external network в compose файле
 if command -v docker >/dev/null 2>&1 && grep -q "external: true" "$INSTALL_DIR/$COMPOSE_FILE" 2>/dev/null; then

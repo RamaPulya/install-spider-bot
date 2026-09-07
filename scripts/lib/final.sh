@@ -73,7 +73,7 @@ CYAN='\033[0;36m'
 PURPLE='\033[0;35m'
 WHITE='\033[1;37m'
 NC='\033[0m'
-REPO_BRANCH="spiderman"
+REPO_BRANCH="spiderman-merge"
 
 # Проверка директории
 check_install_dir() {
